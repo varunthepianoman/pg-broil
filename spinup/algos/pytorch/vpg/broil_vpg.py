@@ -435,12 +435,13 @@ if __name__ == '__main__':
     parser.add_argument('--policy_lr', type=float, default=1e-2, help="learning rate for policy")
     parser.add_argument('--broil_lambda', type=float, default=0.5, help="blending between risk and expected perf")
     parser.add_argument('--broil_alpha', type=float, default=0.95, help="risk sensitivity for cvar [0,1) or erm (0,inf)")
+    # parser.add_argument('--data_dir', type=stf, default='data', help="directory to save data")
     args = parser.parse_args()
 
     mpi_fork(args.cpu)  # run parallel code with mpi
 
     from spinup.utils.run_utils import setup_logger_kwargs
-    logger_kwargs = setup_logger_kwargs(args.exp_name, args.seed)
+    logger_kwargs = setup_logger_kwargs(args.exp_name, seed=args.seed)
 
     if args.env == 'CartPole-v0':
         reward_dist = CartPoleReward()
