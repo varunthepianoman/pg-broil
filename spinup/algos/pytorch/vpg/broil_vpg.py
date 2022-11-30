@@ -417,6 +417,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
         logger.log_tabular('Time', time.time()-start_time)
         logger.dump_tabular()
     #env.plot_entire_trajectory()
+
 if __name__ == '__main__':
     import argparse
     import time
