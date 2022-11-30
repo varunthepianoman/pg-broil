@@ -7,6 +7,10 @@ import torch.nn as nn
 from torch.distributions.normal import Normal
 from torch.distributions.categorical import Categorical
 
+#######
+import curl
+#######
+
 
 def combined_shape(length, shape=None):
     if shape is None:
@@ -46,6 +50,19 @@ def discount_cumsum(x, discount):
 
 class Actor(nn.Module):
 
+    #######################
+    def __init__(
+        self, obs_shape, action_shape, hidden_dim,
+        encoder_feature_dim, log_std_min, log_std_max, num_layers, num_filters, encoder_type='pixel'
+    ):
+        super().__init__()
+
+        self.encoder = curl.make_encoder(
+            encoder_type, obs_shape, encoder_feature_dim, num_layers,
+            num_filters, output_logits=True
+        )
+    #######################
+    
     def _distribution(self, obs):
         raise NotImplementedError
 
@@ -56,6 +73,7 @@ class Actor(nn.Module):
         # Produce action distributions for given observations, and 
         # optionally compute the log likelihood of given actions under
         # those distributions.
+
         pi = self._distribution(obs)
         logp_a = None
         if act is not None:
@@ -138,12 +156,13 @@ class MLPActorCritic(nn.Module):
 
 class BROILActorCritic(nn.Module):
 
-
-    def __init__(self, observation_space, action_space, num_rew_fns,
-                 hidden_sizes=(64,64), activation=nn.Tanh):
+    def __init__(self, observation_space, action_space, num_rew_fns, encoder_feature_dim,
+                 hidden_sizes=(64,64), activation=nn.Tanh, encoder_type='pixel'
+                 ): ## added encoder_type, encoder_feature_dim
         super().__init__()
 
-        obs_dim = observation_space.shape[0]
+        obs_dim = encoder_feature_dim ####
+        # observation_space.shape[0]
 
         # policy builder depends on action space
         if isinstance(action_space, Box):
@@ -154,7 +173,10 @@ class BROILActorCritic(nn.Module):
         # build value function
         self.v  = BROILCritic(obs_dim, hidden_sizes, activation, num_rew_fns)
 
-    def step(self, obs):
+    def step(self, obs, detach_encoder=False): ## added detach_encoder
+        ####### from curl #######
+        obs = self.encoder(obs, detach=detach_encoder)
+        #########################
         with torch.no_grad():
             pi = self.pi._distribution(obs)
             a = pi.sample()
