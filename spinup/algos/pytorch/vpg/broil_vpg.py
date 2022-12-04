@@ -341,11 +341,32 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
     start_time = time.time()
     o, ep_ret, ep_len = env.reset(), 0, 0
 
+    def absolute_steps(epoch, t):
+        return epoch * local_steps_per_epoch + t
+
     # Main loop: collect experience in env and update/log each epoch
     for epoch in range(epochs):
         first_rollout = True
         for t in range(local_steps_per_epoch):
-            a, v, logp = ac.step(torch.as_tensor(o, dtype=torch.float32))
+
+            # new
+            # note: Can copy curl.train.py: L228-251.
+
+            # \new
+
+            # new
+            if step < args.init_steps:
+                action = env.action_space.sample()
+            else:
+                with utils.eval_mode(agent):
+                    a, v, logp = ac.step(torch.as_tensor(o, dtype=torch.float32))
+            # \new
+
+            # new
+            if step % self.cpc_update_freq == 0 and self.encoder_type == 'pixel':
+                obs_anchor, obs_pos = cpc_kwargs["obs_anchor"], cpc_kwargs["obs_pos"]
+                ac.update_cpc(obs_anchor, obs_pos, cpc_kwargs, L, step)
+            # \new
 
             next_o, r, d, _ = env.step(a)
             #TODO: check this, but I think reward as function of next state makes most sense

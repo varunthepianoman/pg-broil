@@ -130,16 +130,14 @@ class MLPActorCritic(nn.Module):
                  hidden_sizes=(64,64), activation=nn.Tanh):
         super().__init__()
 
-        obs_dim = observation_space.shape[0]
-
         # policy builder depends on action space
         if isinstance(action_space, Box):
-            self.pi = MLPGaussianActor(obs_dim, action_space.shape[0], hidden_sizes, activation)
+            self.pi = MLPGaussianActor(observation_space, action_space.shape[0], hidden_sizes, activation)
         elif isinstance(action_space, Discrete):
-            self.pi = MLPCategoricalActor(obs_dim, action_space.n, hidden_sizes, activation)
+            self.pi = MLPCategoricalActor(observation_space, action_space.n, hidden_sizes, activation)
 
         # build value function
-        self.v  = MLPCritic(obs_dim, hidden_sizes, activation)
+        self.v  = MLPCritic(observation_space, hidden_sizes, activation)
 
     def step(self, obs):
         with torch.no_grad():
@@ -161,8 +159,23 @@ class BROILActorCritic(nn.Module):
                  ): ## added encoder_type, encoder_feature_dim
         super().__init__()
 
-        obs_dim = encoder_feature_dim ####
-        # observation_space.shape[0]
+        obs_dim = observation_space.shape
+        # new
+        if self.encoder_type == 'pixel':
+            # create CURL encoder (the 128 batch size is probably unnecessary)
+            self.CURL = CURL(observation_space, encoder_feature_dim,
+                        self.curl_latent_dim, self.critic,self.critic_target, output_type='continuous').to(self.device)
+
+            # optimizer for critic encoder for reconstruction loss
+            self.encoder_optimizer = torch.optim.Adam(
+                self.critic.encoder.parameters(), lr=encoder_lr
+            )
+
+            self.cpc_optimizer = torch.optim.Adam(
+                self.CURL.parameters(), lr=encoder_lr
+            )
+        self.cross_entropy_loss = nn.CrossEntropyLoss()
+        # \new
 
         # policy builder depends on action space
         if isinstance(action_space, Box):
@@ -190,6 +203,24 @@ class BROILActorCritic(nn.Module):
 
     def act(self, obs):
         return self.step(obs)[0]
+
+    def update_cpc(self, obs_anchor, obs_pos, cpc_kwargs, L, step):
+
+        z_a = self.CURL.encode(obs_anchor)
+        z_pos = self.CURL.encode(obs_pos, ema=True)
+
+        logits = self.CURL.compute_logits(z_a, z_pos)
+        labels = torch.arange(logits.shape[0]).long().to(self.device)
+        loss = self.cross_entropy_loss(logits, labels)
+
+        self.encoder_optimizer.zero_grad()
+        self.cpc_optimizer.zero_grad()
+        loss.backward()
+
+        self.encoder_optimizer.step()
+        self.cpc_optimizer.step()
+        if step % self.log_interval == 0:
+            L.log('train/curl_loss', loss, step)
 
 
 class BROILCritic(nn.Module):
