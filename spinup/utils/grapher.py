@@ -34,7 +34,7 @@ class NumpyArrayEncoder(JSONEncoder):
 
 x_vals = []
 y_vals = []
-name_of_grid_search = 'broil_data_120/'
+name_of_grid_search = 'broil_data1/'
 
 x_vals = ["1.0_x", "0.45_x", "0.4_x", "0.0_x"]
 y_vals = ["1.0_y", "0.45_y", "0.4_y", "0.0_y"]
