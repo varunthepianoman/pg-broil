@@ -10,6 +10,7 @@ from spinup.utils.mpi_tools import mpi_fork, mpi_avg, proc_id, mpi_statistics_sc
 from spinup.rewards.cvar_utils import cvar_enumerate_pg
 from spinup.rewards.cartpole_reward_utils import CartPoleReward
 from spinup.rewards.pointbot_reward_utils import PointBotReward
+import dmc2gym
 
 class VPGBuffer:
     """
@@ -531,8 +532,8 @@ if __name__ == '__main__':
     # new
     def env_fn():
         env = dmc2gym.make(
-            domain_name=args.domain_name,
-            task_name=args.task_name,
+            domain_name=args.env,
+            # task_name=args.task_name,
             seed=args.seed,
             visualize_reward=False,
             from_pixels=(args.encoder_type == 'pixel'),
