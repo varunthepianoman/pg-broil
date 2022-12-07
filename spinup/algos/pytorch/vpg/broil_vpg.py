@@ -11,6 +11,7 @@ from spinup.rewards.cvar_utils import cvar_enumerate_pg
 from spinup.rewards.cartpole_reward_utils import CartPoleReward
 from spinup.rewards.pointbot_reward_utils import PointBotReward
 import dmc2gym
+import curl.utils
 
 class VPGBuffer:
     """
@@ -194,7 +195,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
 
     # Create BROIL actor-critic module
     num_rew_fns = len(reward_dist.posterior) #len(reward_dist.get_reward_distribution(env,np.zeros(obs_dim)))
-    ac = actor_critic(env.observation_space, env.action_space, num_rew_fns, **ac_kwargs)
+    ac = actor_critic(env.observation_space, env.action_space, num_rew_fns, encoder_feature_dim=args.encoder_feature_dim, curl_latent_dim=args.curl_latent_dim, **ac_kwargs)
 
     # Sync params across processes
     sync_params(ac)
@@ -308,7 +309,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
     # Set up model saving
     logger.setup_pytorch_saver(ac)
 
-    def update():
+    def update(step):
         data = buf.get()
 
         # Get loss and info values before update
@@ -330,6 +331,17 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             loss_v.backward()
             mpi_avg_grads(ac.v)    # average grads across MPI processes
             vf_optimizer.step()
+        
+        if step % self.critic_target_update_freq == 0:
+            curl.utils.soft_update_params(
+                self.critic.encoder, self.critic.encoder_momentum,
+                self.encoder_tau
+            )
+
+        if step % self.cpc_update_freq == 0 and self.encoder_type == 'pixel':
+            obs_anchor, obs_pos = cpc_kwargs["obs_anchor"], cpc_kwargs["obs_pos"]
+            self.update_cpc(obs_anchor, obs_pos,cpc_kwargs, L, step)
+
 
         # Log changes from update
         kl, ent = pi_info['kl'], pi_info_old['ent']
@@ -342,8 +354,6 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
     start_time = time.time()
     o, ep_ret, ep_len = env.reset(), 0, 0
 
-    def absolute_steps(epoch, t):
-        return epoch * local_steps_per_epoch + t
 
     # Main loop: collect experience in env and update/log each epoch
     for epoch in range(epochs):
@@ -419,8 +429,10 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
         if (epoch % save_freq == 0) or (epoch == epochs-1):
             logger.save_state({'env': env}, None)
 
+        
+        step = epoch * local_steps_per_epoch + t
         # Perform VPG update!
-        update()
+        update(step)
 
         # Log info about epoch
         logger.log_tabular('Epoch', epoch)
@@ -444,7 +456,7 @@ if __name__ == '__main__':
     import argparse
     import time
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env', type=str, default='CartPole-v0')
+    parser.add_argument('--env', type=str, default='cartpole')
     parser.add_argument('--hid', type=int, default=64)
     parser.add_argument('--l', type=int, default=2)
     parser.add_argument('--gamma', type=float, default=0.99)
@@ -463,7 +475,7 @@ if __name__ == '__main__':
     # new
     # FROM CURL:
     # parser.add_argument('--domain_name', default='cheetah')
-    # parser.add_argument('--task_name', default='run')
+    parser.add_argument('--task_name', default='swingup')
     parser.add_argument('--pre_transform_image_size', default=100, type=int)
 
     parser.add_argument('--image_size', default=84, type=int)
@@ -522,7 +534,7 @@ if __name__ == '__main__':
     logger_kwargs = setup_logger_kwargs(args.exp_name, seed=args.seed)
 
 
-    if args.env == 'CartPole-v0':
+    if args.env == 'cartpole':
         reward_dist = CartPoleReward()
     elif args.env == 'PointBot-v0':
         reward_dist = PointBotReward()
@@ -533,7 +545,7 @@ if __name__ == '__main__':
     def env_fn():
         env = dmc2gym.make(
             domain_name=args.env,
-            # task_name=args.task_name,
+            task_name=args.task_name,
             seed=args.seed,
             visualize_reward=False,
             from_pixels=(args.encoder_type == 'pixel'),
@@ -546,7 +558,7 @@ if __name__ == '__main__':
 
         # stack several consecutive frames together
         if args.encoder_type == 'pixel':
-            env = utils.FrameStack(env, k=args.frame_stack)
+            env = curl.utils.FrameStack(env, k=args.frame_stack)
         return env
 
     vpg(env_fn=env_fn, reward_dist=reward_dist, broil_risk_metric=args.risk_metric, broil_lambda=args.broil_lambda, broil_alpha=args.broil_alpha,

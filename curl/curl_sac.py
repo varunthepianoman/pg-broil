@@ -5,8 +5,8 @@ import torch.nn.functional as F
 import copy
 import math
 
-import utils
-from encoder import make_encoder
+import curl.utils
+from curl.encoder import make_encoder
 
 LOG_FREQ = 10000
 

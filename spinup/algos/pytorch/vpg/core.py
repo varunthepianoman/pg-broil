@@ -9,6 +9,7 @@ from torch.distributions.categorical import Categorical
 
 #######
 import curl
+from curl.curl_sac import CURL
 #######
 
 
@@ -155,26 +156,16 @@ class MLPActorCritic(nn.Module):
 class BROILActorCritic(nn.Module):
 
     def __init__(self, observation_space, action_space, num_rew_fns, encoder_feature_dim,
-                 hidden_sizes=(64,64), activation=nn.Tanh, encoder_type='pixel'
+                 hidden_sizes=(64,64), activation=nn.Tanh, encoder_type='pixel', curl_latent_dim=128
                  ): ## added encoder_type, encoder_feature_dim
         super().__init__()
 
         obs_dim = observation_space.shape
         # new
-        if self.encoder_type == 'pixel':
-            # create CURL encoder (the 128 batch size is probably unnecessary)
-            self.CURL = CURL(observation_space, encoder_feature_dim,
-                        self.curl_latent_dim, self.critic,self.critic_target, output_type='continuous').to(self.device)
-
-            # optimizer for critic encoder for reconstruction loss
-            self.encoder_optimizer = torch.optim.Adam(
-                self.critic.encoder.parameters(), lr=encoder_lr
-            )
-
-            self.cpc_optimizer = torch.optim.Adam(
-                self.CURL.parameters(), lr=encoder_lr
-            )
-        self.cross_entropy_loss = nn.CrossEntropyLoss()
+        self.encoder_type = encoder_type
+        self.curl_latent_dim = curl_latent_dim
+        # self.critic=critic
+        # self.
         # \new
 
         # policy builder depends on action space
@@ -185,6 +176,20 @@ class BROILActorCritic(nn.Module):
 
         # build value function
         self.v  = BROILCritic(obs_dim, hidden_sizes, activation, num_rew_fns)
+        if self.encoder_type == 'pixel':
+            # create CURL encoder (the 128 batch size is probably unnecessary)
+            self.CURL = CURL(observation_space, encoder_feature_dim,
+                        self.curl_latent_dim, self.v, output_type='continuous').to(self.device)
+
+            # optimizer for critic encoder for reconstruction loss
+            self.encoder_optimizer = torch.optim.Adam(
+                self.critic.encoder.parameters(), lr=encoder_lr
+            )
+
+            self.cpc_optimizer = torch.optim.Adam(
+                self.CURL.parameters(), lr=encoder_lr
+            )
+        self.cross_entropy_loss = nn.CrossEntropyLoss()
 
     def step(self, obs, detach_encoder=False): ## added detach_encoder
         ####### from curl #######
@@ -225,8 +230,12 @@ class BROILActorCritic(nn.Module):
 
 class BROILCritic(nn.Module):
 
-    def __init__(self, obs_dim, hidden_sizes, activation, num_rew_fns):
+    def __init__(self, obs_dim, hidden_sizes, activation, num_rew_fns, encoder_feature_dim, encoder_type='pixel'):
         super().__init__()
+        self.encoder = curl.make_encoder(
+            encoder_type, obs_shape, encoder_feature_dim, num_layers,
+            num_filters, output_logits=True
+        )
         self.v_nets = nn.ModuleList()
         for i in range(num_rew_fns):
             self.v_nets.append(mlp([obs_dim] + list(hidden_sizes) + [1], activation)) 
