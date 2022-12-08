@@ -171,7 +171,7 @@ class BROILActorCritic(nn.Module):
 
         # policy builder depends on action space
         if isinstance(action_space, Box):
-            self.pi = MLPGaussianActor(obs_dim, action_space.shape[0], hidden_sizes, activation)
+            self.pi = MLPGaussianActor(obs_shape=obs_dim, action_shape=action_space, hidden_dim=64, encoder_feature_dim, num_layers, num_filters, encoder_type='pixel')
         elif isinstance(action_space, Discrete):
             self.pi = MLPCategoricalActor(obs_dim, action_space.n, hidden_sizes, activation)
 
