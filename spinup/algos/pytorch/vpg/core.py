@@ -168,8 +168,6 @@ class BROILActorCritic(nn.Module):
         # new
         self.encoder_type = encoder_type
         self.curl_latent_dim = curl_latent_dim
-        # self.critic=critic
-        # self.
         # \new
 
         # policy builder depends on action space
@@ -177,13 +175,13 @@ class BROILActorCritic(nn.Module):
             self.pi = MLPGaussianActor(obs_dim, act_dim, hidden_sizes, activation, encoder_type, encoder_feature_dim, num_layers, num_filters)
         elif isinstance(action_space, Discrete):
             self.pi = MLPCategoricalActor(obs_dim, act_dim, hidden_sizes, activation,
-        encoder_type, encoder_feature_dim, num_layers, num_filters):
+        encoder_type, encoder_feature_dim, num_layers, num_filters)
 
         # build value function
-        self.v  = BROILCritic(obs_dim, hidden_sizes, activation, num_rew_fns)
+        self.v  = BROILCritic(obs_dim, hidden_sizes, activation, num_rew_fns, encoder_type, encoder_feature_dim, num_layers, num_filters)
         if self.encoder_type == 'pixel':
             # create CURL encoder (the 128 batch size is probably unnecessary)
-            self.CURL = CURL(observation_space, encoder_feature_dim,
+            self.CURL = CURL(obs_dim, encoder_feature_dim,
                         self.curl_latent_dim, self.v, output_type='continuous').to(self.device)
 
             # optimizer for critic encoder for reconstruction loss

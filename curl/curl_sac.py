@@ -187,13 +187,13 @@ class CURL(nn.Module):
     CURL
     """
 
-    def __init__(self, obs_shape, z_dim, batch_size, critic, critic_target, output_type="continuous"):
+    def __init__(self, obs_shape, z_dim, batch_size, critic, output_type="continuous"):
         super(CURL, self).__init__()
         self.batch_size = batch_size
 
         self.encoder = critic.encoder
 
-        self.encoder_target = critic_target.encoder 
+        self.encoder_momentum = critic.encoder_momentum 
 
         self.W = nn.Parameter(torch.rand(z_dim, z_dim))
         self.output_type = output_type
@@ -206,7 +206,7 @@ class CURL(nn.Module):
         """
         if ema:
             with torch.no_grad():
-                z_out = self.encoder_target(x)
+                z_out = self.encoder_momentum(x)
         else:
             z_out = self.encoder(x)
 
