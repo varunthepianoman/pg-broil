@@ -53,8 +53,8 @@ class Actor(nn.Module):
 
     #######################
     def __init__(
-        self, obs_shape, action_shape, hidden_dim,
-        encoder_feature_dim, log_std_min, log_std_max, num_layers, num_filters, encoder_type='pixel'
+        self, obs_shape, 
+        encoder_feature_dim=50, num_layers=4, num_filters=32, encoder_type='pixel'
     ):
         super().__init__()
 
@@ -171,7 +171,7 @@ class BROILActorCritic(nn.Module):
 
         # policy builder depends on action space
         if isinstance(action_space, Box):
-            self.pi = MLPGaussianActor(obs_shape=obs_dim, action_shape=action_space, hidden_dim=64, encoder_feature_dim, num_layers, num_filters, encoder_type='pixel')
+            self.pi = MLPGaussianActor(obs_shape=obs_dim, action_shape=action_space, encoder_feature_dim, encoder_type='pixel')
         elif isinstance(action_space, Discrete):
             self.pi = MLPCategoricalActor(obs_dim, action_space.n, hidden_sizes, activation)
 

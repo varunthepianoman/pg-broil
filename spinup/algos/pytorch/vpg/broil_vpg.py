@@ -21,7 +21,7 @@ class VPGBuffer:
     """
 
     #rew_dim is the dimensionality of the reward function posterior
-    def __init__(self, obs_dim, act_dim, num_rew_fns, size, gamma=0.99, lam=0.95):
+    def __init__(self, obs_dim, act_dim, num_rew_fns, size, gamma=0.99, lam=0.95, image_size=84):
         self.num_rew_fns = num_rew_fns
         self.obs_buf = np.zeros(core.combined_shape(size, obs_dim), dtype=np.float32)
         self.act_buf = np.zeros(core.combined_shape(size, act_dim), dtype=np.float32)
@@ -82,14 +82,45 @@ class VPGBuffer:
         
         self.path_start_idx = self.ptr
 
+    def sample_cpc(self):
+
+        start = time.time()
+        idxs = np.random.randint(
+            0, self.capacity if self.full else self.idx, size=self.batch_size
+        )
+      
+        obses = self.obses[idxs]
+        next_obses = self.next_obses[idxs]
+        pos = obses.copy()
+
+        obses = random_crop(obses, self.image_size)
+        next_obses = random_crop(next_obses, self.image_size)
+        pos = random_crop(pos, self.image_size)
+    
+        obses = torch.as_tensor(obses, device=self.device).float()
+        next_obses = torch.as_tensor(
+            next_obses, device=self.device
+        ).float()
+        actions = torch.as_tensor(self.actions[idxs], device=self.device)
+        rewards = torch.as_tensor(self.rewards[idxs], device=self.device)
+        not_dones = torch.as_tensor(self.not_dones[idxs], device=self.device)
+
+        pos = torch.as_tensor(pos, device=self.device).float()
+        cpc_kwargs = dict(obs_anchor=obses, obs_pos=pos,
+                          time_anchor=None, time_pos=None) 
+
+        return obses, actions, rewards, next_obses, not_dones, cpc_kwargs
+
+
+
     def get(self):
         """
         Call this at the end of an epoch to get all of the data from
         the buffer, with advantages appropriately normalized (shifted to have
         mean zero and std one). Also, resets some pointers in the buffer.
         """
-        assert self.ptr == self.max_size    # buffer has to be full before you can get
-        self.ptr, self.path_start_idx = 0, 0
+        assert self.ptr == self.max_size    # buffer has to be full before you can get self.ptr, 
+        self.path_start_idx = 0, 0
         # the next two lines implement the advantage normalization trick
         #TODO: see if we can vectorize this and figure out multithreading
         for i in range(self.num_rew_fns):
@@ -190,9 +221,14 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
     # Instantiate environment
     env = env_fn()
     #print(env.unwrapped.get_action_meanings())
-    obs_dim = env.observation_space.shape
+    # obs_dim = env.observation_space.shape
     act_dim = env.action_space.shape
-
+    if args.encoder_type == 'pixel':
+            obs_dim = (3*args.frame_stack, args.image_size, args.image_size)
+            pre_aug_obs_dim = (3*args.frame_stack,args.pre_transform_image_size,args.pre_transform_image_size)
+    else:
+        obs_dim = env.observation_space.shape
+        pre_aug_obs_dim = obs_dim
     # Create BROIL actor-critic module
     num_rew_fns = len(reward_dist.posterior) #len(reward_dist.get_reward_distribution(env,np.zeros(obs_dim)))
     ac = actor_critic(env.observation_space, env.action_space, num_rew_fns, encoder_feature_dim=args.encoder_feature_dim, curl_latent_dim=args.curl_latent_dim, **ac_kwargs)
@@ -206,7 +242,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
 
     # Set up experience buffer
     local_steps_per_epoch = int(steps_per_epoch / num_procs())
-    buf = VPGBuffer(obs_dim, act_dim, num_rew_fns, local_steps_per_epoch, gamma, lam)
+    buf = VPGBuffer(pre_aug_obs_dim, act_dim, num_rew_fns, local_steps_per_epoch, gamma, lam, image_size=args.image_size)
 
     #### compute BROIL policy gradient loss (robust version)
     def compute_broil_weights(batch_rets, weights):
