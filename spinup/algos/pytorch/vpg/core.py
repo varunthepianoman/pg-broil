@@ -54,9 +54,8 @@ class Actor(nn.Module):
 
     #######################
     def __init__(
-        self, obs_dim, 
-        encoder_feature_dim=50, num_layers=4, num_filters=32, encoder_type='pixel'
-    ):
+        self, obs_dim, act_dim, hidden_sizes, activation,
+        encoder_type, encoder_feature_dim, num_layers, num_filters):
         super().__init__()
 
         self.encoder = curl.make_encoder(
@@ -85,7 +84,9 @@ class Actor(nn.Module):
 
 class MLPCategoricalActor(Actor):
     
-    def __init__(self, obs_dim, act_dim, hidden_sizes, activation):
+    def __init__(
+        self, obs_dim, act_dim, hidden_sizes, activation,
+        encoder_type, encoder_feature_dim, num_layers, num_filters):
         super().__init__()
         self.logits_net = mlp([obs_dim] + list(hidden_sizes) + [act_dim], activation)
 
@@ -99,8 +100,9 @@ class MLPCategoricalActor(Actor):
 
 class MLPGaussianActor(Actor):
 
-    def __init__(self, obs_shape, action_shape, hidden_dim,
-                 encoder_feature_dim, log_std_min, log_std_max, num_layers, num_filters, encoder_type='pixel'):
+    def __init__(
+        self, obs_dim, act_dim, hidden_sizes, activation,
+        encoder_type, encoder_feature_dim, num_layers, num_filters):
         super().__init__()
         log_std = -0.5 * np.ones(act_dim, dtype=np.float32)
         self.log_std = torch.nn.Parameter(torch.as_tensor(log_std))
@@ -157,12 +159,10 @@ class MLPActorCritic(nn.Module):
 
 class BROILActorCritic(nn.Module):
 
-    def __init__(self, observation_space, action_space, num_rew_fns, encoder_feature_dim,
-                 hidden_sizes=(64,64), activation=nn.Tanh, encoder_type='pixel', curl_latent_dim=128
-                 ): ## added encoder_type, encoder_feature_dim
+    def __init__(self, obs_dim, act_dim, num_rew_fns, hidden_sizes=(64,64), activation=nn.Tanh, 
+                 encoder_type='pixel', encoder_feature_dim=50, num_layers=4, num_filters=32, curl_latent_dim=128) ## encoder_type and everything after is from curl 
         super().__init__()
 
-        obs_dim = observation_space.shape
         # new
         self.encoder_type = encoder_type
         self.curl_latent_dim = curl_latent_dim
@@ -172,9 +172,10 @@ class BROILActorCritic(nn.Module):
 
         # policy builder depends on action space
         if isinstance(action_space, Box):
-            self.pi = MLPGaussianActor(obs_shape=obs_dim, action_shape=action_space, encoder_feature_dim, encoder_type='pixel')
+            self.pi = MLPGaussianActor(obs_dim, act_dim, hidden_sizes, activation, encoder_type, encoder_feature_dim, num_layers, num_filters)
         elif isinstance(action_space, Discrete):
-            self.pi = MLPCategoricalActor(obs_dim, action_space.n, hidden_sizes, activation)
+            self.pi = MLPCategoricalActor(obs_dim, act_dim, hidden_sizes, activation,
+        encoder_type, encoder_feature_dim, num_layers, num_filters):
 
         # build value function
         self.v  = BROILCritic(obs_dim, hidden_sizes, activation, num_rew_fns)

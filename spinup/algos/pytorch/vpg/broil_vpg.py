@@ -88,8 +88,8 @@ class VPGBuffer:
         start = time.time()
         pos = self.obs_buf.copy()
 
-        self.obs_buf = random_crop(self.obs_buf, self.image_size)
-        pos = random_crop(pos, self.image_size)
+        self.obs_buf = curl.utils.random_crop(self.obs_buf, self.image_size)
+        pos = curl.utils.random_crop(pos, self.image_size)
     
 
         # the next two lines implement the advantage normalization trick
@@ -224,7 +224,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
         pre_aug_obs_dim = obs_dim
     # Create BROIL actor-critic module
     num_rew_fns = len(reward_dist.posterior) #len(reward_dist.get_reward_distribution(env,np.zeros(obs_dim)))
-    ac = actor_critic(env.observation_space, env.action_space, num_rew_fns, encoder_feature_dim=args.encoder_feature_dim, curl_latent_dim=args.curl_latent_dim, **ac_kwargs)
+    ac = actor_critic(obs_dim, env.action_space, num_rew_fns, encoder_feature_dim=args.encoder_feature_dim, curl_latent_dim=args.curl_latent_dim, **ac_kwargs)
 
     # Sync params across processes
     sync_params(ac)
