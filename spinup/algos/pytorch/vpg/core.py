@@ -10,6 +10,7 @@ from torch.distributions.categorical import Categorical
 #######
 import curl
 from curl.curl_sac import CURL
+from curl.encoder import copy_conv_weights_from 
 #######
 
 
@@ -53,7 +54,7 @@ class Actor(nn.Module):
 
     #######################
     def __init__(
-        self, obs_shape, 
+        self, obs_dim, 
         encoder_feature_dim=50, num_layers=4, num_filters=32, encoder_type='pixel'
     ):
         super().__init__()
@@ -237,6 +238,11 @@ class BROILCritic(nn.Module):
             encoder_type, obs_shape, encoder_feature_dim, num_layers,
             num_filters, output_logits=True
         )
+        self.encoder_momentum = curl.make_encoder(
+            encoder_type, obs_shape, encoder_feature_dim, num_layers,
+            num_filters, output_logits=True
+        )
+        self.encoder_momentum.copy_conv_weights_from(self.encoder)
         self.v_nets = nn.ModuleList()
         for i in range(num_rew_fns):
             self.v_nets.append(mlp([obs_dim] + list(hidden_sizes) + [1], activation)) 
