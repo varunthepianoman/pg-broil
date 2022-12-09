@@ -10,7 +10,6 @@ from torch.distributions.categorical import Categorical
 #######
 import curl
 from curl.curl_sac import CURL
-from curl.encoder import copy_conv_weights_from 
 #######
 
 
@@ -21,6 +20,7 @@ def combined_shape(length, shape=None):
 
 
 def mlp(sizes, activation, output_activation=nn.Identity):
+    print('sizes', sizes)
     layers = []
     for j in range(len(sizes)-1):
         act = activation if j < len(sizes)-2 else output_activation
@@ -58,8 +58,8 @@ class Actor(nn.Module):
         encoder_type, encoder_feature_dim, num_layers, num_filters):
         super().__init__()
 
-        self.encoder = curl.make_encoder(
-            encoder_type, obs_shape, encoder_feature_dim, num_layers,
+        self.encoder = curl.encoder.make_encoder(
+            encoder_type, obs_dim, encoder_feature_dim, num_layers,
             num_filters, output_logits=True
         )
     #######################
@@ -87,8 +87,9 @@ class MLPCategoricalActor(Actor):
     def __init__(
         self, obs_dim, act_dim, hidden_sizes, activation,
         encoder_type, encoder_feature_dim, num_layers, num_filters):
-        super().__init__()
-        self.logits_net = mlp([obs_dim] + list(hidden_sizes) + [act_dim], activation)
+        super().__init__(obs_dim, act_dim, hidden_sizes, activation,
+        encoder_type, encoder_feature_dim, num_layers, num_filters)
+        self.logits_net = mlp([encoder_feature_dim] + list(hidden_sizes) + [act_dim], activation)
 
     def _distribution(self, obs):
         obs = self.encoder(obs)
@@ -104,10 +105,12 @@ class MLPGaussianActor(Actor):
     def __init__(
         self, obs_dim, act_dim, hidden_sizes, activation,
         encoder_type, encoder_feature_dim, num_layers, num_filters):
-        super().__init__()
+        super().__init__(obs_dim, act_dim, hidden_sizes, activation,
+        encoder_type, encoder_feature_dim, num_layers, num_filters)
+        print('act_dim', act_dim)
         log_std = -0.5 * np.ones(act_dim, dtype=np.float32)
         self.log_std = torch.nn.Parameter(torch.as_tensor(log_std))
-        self.mu_net = mlp([obs_dim] + list(hidden_sizes) + [act_dim], activation)
+        self.mu_net = mlp([encoder_feature_dim] + list(hidden_sizes) + [act_dim], activation)
 
     def _distribution(self, obs):
         obs = self.encoder(obs)
@@ -161,9 +164,9 @@ class MLPActorCritic(nn.Module):
 
 class BROILActorCritic(nn.Module):
 
-    def __init__(self, obs_dim, act_dim, num_rew_fns, hidden_sizes=(64,64), activation=nn.Tanh, 
-                 encoder_type='pixel', encoder_feature_dim=50, num_layers=4, num_filters=32, curl_latent_dim=128) ## encoder_type and everything after is from curl 
+    def __init__(self, obs_dim, act_dim, num_rew_fns, hidden_sizes=(64,64), activation=nn.Tanh, encoder_type='pixel', encoder_feature_dim=50, encoder_lr=1e-3, num_layers=4, num_filters=32, curl_latent_dim=128): ## encoder_type and everything after is from curl 
         super().__init__()
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         # new
         self.encoder_type = encoder_type
@@ -171,10 +174,10 @@ class BROILActorCritic(nn.Module):
         # \new
 
         # policy builder depends on action space
-        if isinstance(action_space, Box):
-            self.pi = MLPGaussianActor(obs_dim, act_dim, hidden_sizes, activation, encoder_type, encoder_feature_dim, num_layers, num_filters)
-        elif isinstance(action_space, Discrete):
-            self.pi = MLPCategoricalActor(obs_dim, act_dim, hidden_sizes, activation,
+        if isinstance(act_dim, Box):
+            self.pi = MLPGaussianActor(obs_dim, act_dim.shape[0], hidden_sizes, activation, encoder_type, encoder_feature_dim, num_layers, num_filters)
+        elif isinstance(act_dim, Discrete):
+            self.pi = MLPCategoricalActor(obs_dim, act_dim.n, hidden_sizes, activation,
         encoder_type, encoder_feature_dim, num_layers, num_filters)
 
         # build value function
@@ -186,7 +189,7 @@ class BROILActorCritic(nn.Module):
 
             # optimizer for critic encoder for reconstruction loss
             self.encoder_optimizer = torch.optim.Adam(
-                self.critic.encoder.parameters(), lr=encoder_lr
+                self.v.encoder.parameters(), lr=encoder_lr
             )
 
             self.cpc_optimizer = torch.optim.Adam(
@@ -232,18 +235,18 @@ class BROILCritic(nn.Module):
 
     def __init__(self, obs_dim, hidden_sizes, activation, num_rew_fns, encoder_type, encoder_feature_dim, num_layers, num_filters):
         super().__init__()
-        self.encoder = curl.make_encoder(
-            encoder_type, obs_shape, encoder_feature_dim, num_layers,
+        self.encoder = curl.encoder.make_encoder(
+            encoder_type, obs_dim, encoder_feature_dim, num_layers,
             num_filters, output_logits=True
         )
-        self.encoder_momentum = curl.make_encoder(
-            encoder_type, obs_shape, encoder_feature_dim, num_layers,
+        self.encoder_momentum = curl.encoder.make_encoder(
+            encoder_type, obs_dim, encoder_feature_dim, num_layers,
             num_filters, output_logits=True
         )
         self.encoder_momentum.copy_conv_weights_from(self.encoder)
         self.v_nets = nn.ModuleList()
         for i in range(num_rew_fns):
-            self.v_nets.append(mlp([obs_dim] + list(hidden_sizes) + [1], activation)) 
+            self.v_nets.append(mlp([encoder_feature_dim] + list(hidden_sizes) + [1], activation)) 
 
     def forward(self, obs):
         vals = []

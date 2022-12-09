@@ -198,6 +198,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
         save_freq (int): How often (in terms of gap between epochs) to save
             the current policy and value function.
     """
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Special function to avoid certain slowdowns from PyTorch + MPI combo.
     setup_pytorch_for_mpi()
@@ -224,7 +225,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
         pre_aug_obs_dim = obs_dim
     # Create BROIL actor-critic module
     num_rew_fns = len(reward_dist.posterior) #len(reward_dist.get_reward_distribution(env,np.zeros(obs_dim)))
-    ac = actor_critic(obs_dim, env.action_space, num_rew_fns, encoder_feature_dim=args.encoder_feature_dim, curl_latent_dim=args.curl_latent_dim, **ac_kwargs)
+    ac = actor_critic(obs_dim, env.action_space, num_rew_fns, encoder_feature_dim=args.encoder_feature_dim, encoder_lr=args.encoder_lr, curl_latent_dim=args.curl_latent_dim, **ac_kwargs)
 
     # Sync params across processes
     sync_params(ac)
@@ -397,7 +398,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             step = epoch * local_steps_per_epoch + t
             # new
             if step < args.init_steps:
-                action = env.action_space.sample()
+                a = env.action_space.sample()
             else:
                 with utils.eval_mode(agent):
                     a, v, logp = ac.step(torch.as_tensor(o, dtype=torch.float32))
@@ -407,7 +408,10 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             next_o, r, d, _ = env.step(a)
             #TODO: check this, but I think reward as function of next state makes most sense
             if args.env == 'cartpole':
+                # print('next_o.shape', next_o.shape)
+                # print('next_o', next_o)
                 rew_dist = reward_dist.get_reward_distribution(next_o)
+                print('rew_dist', rew_dist)
             elif args.env == 'PointBot-v0':
                 rew_dist = reward_dist.get_reward_distribution(env,next_o)
             else:
