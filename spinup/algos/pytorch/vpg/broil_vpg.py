@@ -83,34 +83,28 @@ class VPGBuffer:
         self.path_start_idx = self.ptr
 
     def sample_cpc(self):
+        assert self.ptr == self.max_size    # buffer has to be full before you can get self.ptr, 
 
         start = time.time()
-        idxs = np.random.randint(
-            0, self.capacity if self.full else self.idx, size=self.batch_size
-        )
-      
-        obses = self.obses[idxs]
-        next_obses = self.next_obses[idxs]
-        pos = obses.copy()
+        pos = self.obs_buf.copy()
 
-        obses = random_crop(obses, self.image_size)
-        next_obses = random_crop(next_obses, self.image_size)
+        self.obs_buf = random_crop(self.obs_buf, self.image_size)
         pos = random_crop(pos, self.image_size)
     
-        obses = torch.as_tensor(obses, device=self.device).float()
-        next_obses = torch.as_tensor(
-            next_obses, device=self.device
-        ).float()
-        actions = torch.as_tensor(self.actions[idxs], device=self.device)
-        rewards = torch.as_tensor(self.rewards[idxs], device=self.device)
-        not_dones = torch.as_tensor(self.not_dones[idxs], device=self.device)
 
-        pos = torch.as_tensor(pos, device=self.device).float()
         cpc_kwargs = dict(obs_anchor=obses, obs_pos=pos,
-                          time_anchor=None, time_pos=None) 
+        self.path_start_idx = 0, 0
+        # the next two lines implement the advantage normalization trick
+        #TODO: see if we can vectorize this and figure out multithreading
+        for i in range(self.num_rew_fns):
+            adv_mean, adv_std = mpi_statistics_scalar(self.adv_buf[:,i])
+            self.adv_buf[:,i] = (self.adv_buf[:,i] - adv_mean) / adv_std
+        data = dict(obs=self.obs_buf, act=self.act_buf, ret=self.ret_buf,
+                        adv=self.adv_buf, logp=self.logp_buf, p_returns=self.posterior_returns, time_anchor=None, time_pos=None) 
+        self.posterior_returns = [] # resetting
+        return {k: torch.as_tensor(v, dtype=torch.float32) for k,v in data.items()}, cpc_kwargs
 
-        return obses, actions, rewards, next_obses, not_dones, cpc_kwargs
-
+        # return obses, actions, rewards, next_obses, not_dones, cpc_kwargs
 
 
     def get(self):
@@ -346,7 +340,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
     logger.setup_pytorch_saver(ac)
 
     def update(step):
-        data = buf.get()
+        data, cpc_kwargs = buf.sample_cpc()
 
         # Get loss and info values before update
         pi_l_old, pi_info_old, risk = compute_loss_pi(data)
@@ -368,15 +362,15 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             mpi_avg_grads(ac.v)    # average grads across MPI processes
             vf_optimizer.step()
         
-        if step % self.critic_target_update_freq == 0:
+        if step % args.critic_target_update_freq == 0:
             curl.utils.soft_update_params(
-                self.critic.encoder, self.critic.encoder_momentum,
-                self.encoder_tau
+                ac.v.encoder, ac.v.encoder_momentum,
+                args.encoder_tau
             )
 
-        if step % self.cpc_update_freq == 0 and self.encoder_type == 'pixel':
+        if step % args.cpc_update_freq == 0 and ac.encoder_type == 'pixel':
             obs_anchor, obs_pos = cpc_kwargs["obs_anchor"], cpc_kwargs["obs_pos"]
-            self.update_cpc(obs_anchor, obs_pos,cpc_kwargs, L, step)
+            ac.update_cpc(obs_anchor, obs_pos,cpc_kwargs, None, step) # passed in L=None
 
 
         # Log changes from update
@@ -401,6 +395,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
 
             # \new
 
+            step = epoch * local_steps_per_epoch + t
             # new
             if step < args.init_steps:
                 action = env.action_space.sample()
@@ -409,15 +404,10 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
                     a, v, logp = ac.step(torch.as_tensor(o, dtype=torch.float32))
             # \new
 
-            # new
-            if step % self.cpc_update_freq == 0 and self.encoder_type == 'pixel':
-                obs_anchor, obs_pos = cpc_kwargs["obs_anchor"], cpc_kwargs["obs_pos"]
-                ac.update_cpc(obs_anchor, obs_pos, cpc_kwargs, L, step)
-            # \new
 
             next_o, r, d, _ = env.step(a)
             #TODO: check this, but I think reward as function of next state makes most sense
-            if args.env == 'CartPole-v0':
+            if args.env == 'cartpole':
                 rew_dist = reward_dist.get_reward_distribution(next_o)
             elif args.env == 'PointBot-v0':
                 rew_dist = reward_dist.get_reward_distribution(env,next_o)
@@ -466,7 +456,6 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             logger.save_state({'env': env}, None)
 
         
-        step = epoch * local_steps_per_epoch + t
         # Perform VPG update!
         update(step)
 

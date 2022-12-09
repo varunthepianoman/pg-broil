@@ -225,8 +225,8 @@ class BROILActorCritic(nn.Module):
 
         self.encoder_optimizer.step()
         self.cpc_optimizer.step()
-        if step % self.log_interval == 0:
-            L.log('train/curl_loss', loss, step)
+        # if step % self.log_interval == 0:
+        #    L.log('train/curl_loss', loss, step)
 
 
 class BROILCritic(nn.Module):
