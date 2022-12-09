@@ -91,6 +91,7 @@ class MLPCategoricalActor(Actor):
         self.logits_net = mlp([obs_dim] + list(hidden_sizes) + [act_dim], activation)
 
     def _distribution(self, obs):
+        obs = self.encoder(obs)
         logits = self.logits_net(obs)
         return Categorical(logits=logits)
 
@@ -109,6 +110,7 @@ class MLPGaussianActor(Actor):
         self.mu_net = mlp([obs_dim] + list(hidden_sizes) + [act_dim], activation)
 
     def _distribution(self, obs):
+        obs = self.encoder(obs)
         mu = self.mu_net(obs)
         std = torch.exp(self.log_std)
         return Normal(mu, std)
@@ -195,9 +197,6 @@ class BROILActorCritic(nn.Module):
         self.cross_entropy_loss = nn.CrossEntropyLoss()
 
     def step(self, obs, detach_encoder=False): ## added detach_encoder
-        ####### from curl #######
-        obs = self.encoder(obs, detach=detach_encoder)
-        #########################
         with torch.no_grad():
             pi = self.pi._distribution(obs)
             a = pi.sample()
@@ -233,7 +232,7 @@ class BROILActorCritic(nn.Module):
 
 class BROILCritic(nn.Module):
 
-    def __init__(self, obs_dim, hidden_sizes, activation, num_rew_fns, encoder_feature_dim, encoder_type='pixel'):
+    def __init__(self, obs_dim, hidden_sizes, activation, num_rew_fns, encoder_type, encoder_feature_dim, num_layers, num_filters):
         super().__init__()
         self.encoder = curl.make_encoder(
             encoder_type, obs_shape, encoder_feature_dim, num_layers,
@@ -250,6 +249,7 @@ class BROILCritic(nn.Module):
 
     def forward(self, obs):
         vals = []
+        obs = self.encoder(obs)
         for v_net in self.v_nets:
             #v = torch.squeeze(v_net(obs), -1)
             v = v_net(obs)
