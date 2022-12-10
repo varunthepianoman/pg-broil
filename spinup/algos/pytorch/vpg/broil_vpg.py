@@ -383,9 +383,18 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
                      DeltaLossPi=(loss_pi.item() - pi_l_old),
                      DeltaLossV=(loss_v.item() - v_l_old), Risk=risk, ExpectedRet=np.dot(np.mean(data['p_returns'].numpy(), axis=0), reward_dist.posterior))
 
+    def render():
+        img = env.render(
+            height=self._height,
+            width=self._width,
+            camera_id=self._camera_id
+        )
+        img = img.transpose(2, 0, 1).copy()
+        return img
     # Prepare for interaction with environment
     start_time = time.time()
-    o, ep_ret, ep_len = env.reset(), 0, 0
+    o_state, ep_ret, ep_len = env.reset(), 0, 0
+    o_image = render()
 
 
     # Main loop: collect experience in env and update/log each epoch
@@ -400,22 +409,24 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
 
             step = epoch * local_steps_per_epoch + t
             # new
-            o_4d = o[None,...]
-            a, v, logp = ac.step(torch.as_tensor(o_4d, dtype=torch.float32))
+            o_image_4d = o_image[None,...]
+            a, v, logp = ac.step(torch.as_tensor(o_image_4d, dtype=torch.float32))
             # \new
-            a = a[0]
+            # a = a[0] Probably not needed anymore
             print('action chosen', a)
-            next_o, r, d, _ = env.step(a, state_and_image=False) # should work like nothing is changed if we pass in state_and_image=False
+            next_o_state, r, d, _ = env.step(a, state_and_image=False) # should work like nothing is changed if we pass in state_and_image=False
+            next_o_image = render()
             # next_o_state, next_o_image = next_o
             #TODO: check this, but I think reward as function of next state makes most sense
-            if args.env == 'cartpole':
+            # if args.env == 'cartpole':
+            if args.env == 'CartPole-v0':
                 # print('next_o.shape', next_o.shape)
                 # print('next_o', next_o)
-                rew_dist = reward_dist.get_reward_distribution(next_o)
+                rew_dist = reward_dist.get_reward_distribution(next_o_state)
                 # OLD: rew_dist = reward_dist.get_reward_distribution(next_o_state)
                 print('rew_dist', rew_dist)
             elif args.env == 'PointBot-v0':
-                rew_dist = reward_dist.get_reward_distribution(env, next_o)
+                rew_dist = reward_dist.get_reward_distribution(env, next_o_state)
                 # OLD rew_dist = reward_dist.get_reward_distribution(env, next_o_state)
             else:
                 raise NotImplementedError("Unsupported Environment")
@@ -423,11 +434,12 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             ep_len += 1
 
             # save and log
-            buf.store(o, a, rew_dist, v, logp)
+            buf.store(o_image, a, rew_dist, v, logp)
             logger.store(VVals=v)
             
             # Update obs (critical!)
-            o = next_o
+            o_image = next_o_image
+            o_state = next_o_state
             # OLD o = next_o_image
 
             timeout = ep_len == max_ep_len
@@ -437,7 +449,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             if render and first_rollout:
                 env.render()
                 time.sleep(0.01)
-                print("cart position", o[0])
+                print("cart position", o_state[0])
                 
                 
 
@@ -447,7 +459,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
                     print('Warning: trajectory cut off by epoch at %d steps.'%ep_len, flush=True)
                 # if trajectory didn't reach terminal state, bootstrap value target
                 if timeout or epoch_ended:
-                    _, v, _ = ac.step(torch.as_tensor(o, dtype=torch.float32))
+                    _, v, _ = ac.step(torch.as_tensor(o_image, dtype=torch.float32))
                     buf.finish_path(v)
                 else:
                     buf.finish_path()
@@ -455,7 +467,8 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
                 if terminal:
                     # only save EpRet / EpLen if trajectory finished
                     logger.store(EpRet=ep_ret, EpLen=ep_len)
-                o, ep_ret, ep_len = env.reset(), 0, 0
+                o_state, ep_ret, ep_len = env.reset(), 0, 0
+                o_image = render()
 
 
         # Save model
@@ -488,7 +501,7 @@ if __name__ == '__main__':
     import argparse
     import time
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env', type=str, default='cartpole')
+    parser.add_argument('--env', type=str, default='CartPole-v0')
     parser.add_argument('--hid', type=int, default=64)
     parser.add_argument('--l', type=int, default=2)
     parser.add_argument('--gamma', type=float, default=0.99)
@@ -566,7 +579,7 @@ if __name__ == '__main__':
     logger_kwargs = setup_logger_kwargs(args.exp_name, seed=args.seed)
 
 
-    if args.env == 'cartpole':
+    if args.env == 'CartPole-v0':
         reward_dist = CartPoleReward()
     elif args.env == 'PointBot-v0':
         reward_dist = PointBotReward()
@@ -575,17 +588,17 @@ if __name__ == '__main__':
 
     # new
     def env_fn():
-        env = dmc2gym.make(
-            domain_name=args.env,
-            task_name=args.task_name,
-            seed=args.seed,
-            visualize_reward=False,
-            from_pixels=(args.encoder_type == 'pixel'),
-            height=args.pre_transform_image_size,
-            width=args.pre_transform_image_size,
-            frame_skip=args.action_repeat
-        )
-        # env = gym.make(args.env)
+        # env = dmc2gym.make(
+        #     domain_name=args.env,
+        #     task_name=args.task_name,
+        #     seed=args.seed,
+        #     visualize_reward=False,
+        #     from_pixels=(args.encoder_type == 'pixel'),
+        #     height=args.pre_transform_image_size,
+        #     width=args.pre_transform_image_size,
+        #     frame_skip=args.action_repeat
+        # )
+        env = gym.make(args.env)
 
         env.seed(args.seed)
 

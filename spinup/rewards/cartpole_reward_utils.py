@@ -5,9 +5,8 @@ class CartPoleReward():
 
     def get_reward_distribution(self, obs):
 
-        # x_pos = obs[0]
-        # OLD if x_pos > 0.0:
-        if np.random.random() > 0.5:
+        x_pos = obs[0]
+        if x_pos > 0.0:
             return np.array([+2.0, -2.0])
         else:
             return np.array([+1.0, +1.0])
