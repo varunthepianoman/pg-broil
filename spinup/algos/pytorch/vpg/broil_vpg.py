@@ -405,7 +405,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             # \new
 
 
-            next_o, r, d, _ = env.step(a)
+            next_o, r, d, _ = env.step(a, state_and_image=True)
             #TODO: check this, but I think reward as function of next state makes most sense
             if args.env == 'cartpole':
                 # print('next_o.shape', next_o.shape)

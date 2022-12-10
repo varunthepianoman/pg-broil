@@ -144,7 +144,7 @@ class DMCWrapper(core.Env):
         self._norm_action_space.seed(seed)
         self._observation_space.seed(seed)
 
-    def step(self, action):
+    def step(self, action, state_and_image=False):
         action = np.clip(action, -1, 1)
         assert self._norm_action_space.contains(action)
         action = self._convert_action(action)
@@ -159,7 +159,10 @@ class DMCWrapper(core.Env):
             done = time_step.last()
             if done:
                 break
-        obs = self._get_obs(time_step)
+        if state_and_image:
+            obs = self._get_state_and_image(time_step)
+        else:
+            obs = self._get_obs(time_step)
         self.current_state = _flatten_obs(time_step.observation)
         observation = _flatten_obs(self._env._task.get_observation(self._env.physics))
         constraint = self._env._task.get_constraint(self._env.physics)
