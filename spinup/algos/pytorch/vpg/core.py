@@ -139,7 +139,6 @@ class MLPActorCritic(nn.Module):
     def __init__(self, observation_space, action_space, 
                  hidden_sizes=(64,64), activation=nn.Tanh):
         super().__init__()
-
         # policy builder depends on action space
         if isinstance(action_space, Box):
             self.pi = MLPGaussianActor(observation_space, action_space.shape[0], hidden_sizes, activation)
@@ -166,6 +165,7 @@ class BROILActorCritic(nn.Module):
 
     def __init__(self, obs_dim, act_dim, num_rew_fns, hidden_sizes=(64,64), activation=nn.Tanh, encoder_type='pixel', encoder_feature_dim=50, encoder_lr=1e-3, num_layers=4, num_filters=32, curl_latent_dim=128): ## encoder_type and everything after is from curl 
         super().__init__()
+        print('action_space', act_dim)
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         # new
@@ -175,8 +175,10 @@ class BROILActorCritic(nn.Module):
 
         # policy builder depends on action space
         if isinstance(act_dim, Box):
+            print('box')
             self.pi = MLPGaussianActor(obs_dim, act_dim.shape[0], hidden_sizes, activation, encoder_type, encoder_feature_dim, num_layers, num_filters)
         elif isinstance(act_dim, Discrete):
+            print('discrete')
             self.pi = MLPCategoricalActor(obs_dim, act_dim.n, hidden_sizes, activation,
         encoder_type, encoder_feature_dim, num_layers, num_filters)
 
