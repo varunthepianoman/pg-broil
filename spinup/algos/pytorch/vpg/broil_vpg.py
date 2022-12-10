@@ -10,7 +10,7 @@ from spinup.utils.mpi_tools import mpi_fork, mpi_avg, proc_id, mpi_statistics_sc
 from spinup.rewards.cvar_utils import cvar_enumerate_pg
 from spinup.rewards.cartpole_reward_utils import CartPoleReward
 from spinup.rewards.pointbot_reward_utils import PointBotReward
-import dmc2gym.dmc2gym as dmc2gym
+import dmc2gym
 import curl.utils
 
 class VPGBuffer:
