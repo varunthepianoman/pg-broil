@@ -214,7 +214,10 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
 
     # Instantiate environment
     env = env_fn()
-    #print(env.unwrapped.get_action_meanings())
+    print('env', args.env)
+    print('env.action_space', env.action_space)
+    print('env.env.action_space', env.env.action_space)
+    print('env unwrapped action meanings', env.unwrapped.action_space())
     # obs_dim = env.observation_space.shape
     act_dim = env.action_space.shape
     if args.encoder_type == 'pixel':
