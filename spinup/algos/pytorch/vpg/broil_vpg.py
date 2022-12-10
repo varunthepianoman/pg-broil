@@ -576,7 +576,7 @@ if __name__ == '__main__':
     # new
     def env_fn():
         env = dmc2gym.make(
-            domain_name=args.env,
+            domain_name='CartPole-v0',#args.env,
             task_name=args.task_name,
             seed=args.seed,
             visualize_reward=False,
