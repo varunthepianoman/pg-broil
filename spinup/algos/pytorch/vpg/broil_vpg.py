@@ -397,10 +397,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
 
             step = epoch * local_steps_per_epoch + t
             # new
-            if step < args.init_steps:
-                a = env.action_space.sample()
-            else:
-                a, v, logp = ac.step(torch.as_tensor(o, dtype=torch.float32))
+            a, v, logp = ac.step(torch.as_tensor(o, dtype=torch.float32))
             # \new
 
 
