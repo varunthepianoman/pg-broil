@@ -572,16 +572,17 @@ if __name__ == '__main__':
 
     # new
     def env_fn():
-        env = dmc2gym.make(
-            domain_name='CartPole-v0',#args.env,
-            task_name=args.task_name,
-            seed=args.seed,
-            visualize_reward=False,
-            from_pixels=(args.encoder_type == 'pixel'),
-            height=args.pre_transform_image_size,
-            width=args.pre_transform_image_size,
-            frame_skip=args.action_repeat
-        )
+        # env = dmc2gym.make(
+        #     domain_name='CartPole-v0',#args.env,
+        #     task_name=args.task_name,
+        #     seed=args.seed,
+        #     visualize_reward=False,
+        #     from_pixels=(args.encoder_type == 'pixel'),
+        #     height=args.pre_transform_image_size,
+        #     width=args.pre_transform_image_size,
+        #     frame_skip=args.action_repeat
+        # )
+        env = gym.make(args.env)
 
         env.seed(args.seed)
 
