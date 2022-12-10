@@ -118,6 +118,19 @@ class DMCWrapper(core.Env):
                 camera_id=self._camera_id
             ).copy()
 
+    def _get_image_obs(self):
+        obs = self.render(
+            height=self._height,
+            width=self._width,
+            camera_id=self._camera_id
+        )
+        if self._channels_first:
+            obs = obs.transpose(2, 0, 1).copy()
+        return obs
+
+    def _get_state_and_image_obs(self):
+        return _flatten_obs(time_step.observation), self._get_image_obs()
+
     def _convert_action(self, action):
         action = action.astype(np.float64)
         true_delta = self._true_action_space.high - self._true_action_space.low
@@ -160,7 +173,7 @@ class DMCWrapper(core.Env):
             if done:
                 break
         if state_and_image:
-            obs = self._get_state_and_image(time_step)
+            obs = self._get_state_and_image_obs(time_step)
         else:
             obs = self._get_obs(time_step)
         self.current_state = _flatten_obs(time_step.observation)

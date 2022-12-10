@@ -220,7 +220,10 @@ class FrameStack(gym.Wrapper):
 
     def step(self, action, state_and_image=False):
         obs, reward, done, info = self.env.step(action, state_and_image)
-        self._frames.append(obs)
+        if state_and_image:
+            state, image = obs
+            self._frames.append(image)
+            return [state, self._get_obs()], reward, done, info
         return self._get_obs(), reward, done, info
 
     def _get_obs(self):
