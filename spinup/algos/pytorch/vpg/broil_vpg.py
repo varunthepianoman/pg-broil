@@ -404,16 +404,18 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             # \new
 
 
-            next_o, r, d, _ = env.step(a, state_and_image=True)
-            next_o_state, next_o_image = next_o
+            next_o, r, d, _ = env.step(a, state_and_image=False) # should work like nothing is changed if we pass in state_and_image=False
+            # next_o_state, next_o_image = next_o
             #TODO: check this, but I think reward as function of next state makes most sense
             if args.env == 'cartpole':
                 # print('next_o.shape', next_o.shape)
                 # print('next_o', next_o)
-                rew_dist = reward_dist.get_reward_distribution(next_o_state)
+                rew_dist = reward_dist.get_reward_distribution(next_o)
+                # OLD: rew_dist = reward_dist.get_reward_distribution(next_o_state)
                 print('rew_dist', rew_dist)
             elif args.env == 'PointBot-v0':
-                rew_dist = reward_dist.get_reward_distribution(env, next_o_state)
+                rew_dist = reward_dist.get_reward_distribution(env, next_o)
+                # OLD rew_dist = reward_dist.get_reward_distribution(env, next_o_state)
             else:
                 raise NotImplementedError("Unsupported Environment")
             ep_ret += r
@@ -424,7 +426,8 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             logger.store(VVals=v)
             
             # Update obs (critical!)
-            o = next_o_image
+            o = next_o
+            # OLD o = next_o_image
 
             timeout = ep_len == max_ep_len
             terminal = d or timeout
