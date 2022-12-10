@@ -507,7 +507,7 @@ if __name__ == '__main__':
     # new
     # FROM CURL:
     # parser.add_argument('--domain_name', default='cheetah')
-    parser.add_argument('--task_name', default='swingup')
+    parser.add_argument('--task_name', default='balance')
     parser.add_argument('--pre_transform_image_size', default=100, type=int)
 
     parser.add_argument('--image_size', default=84, type=int)
@@ -575,17 +575,17 @@ if __name__ == '__main__':
 
     # new
     def env_fn():
-        # env = dmc2gym.make(
-        #     domain_name='CartPole-v0',#args.env,
-        #     task_name=args.task_name,
-        #     seed=args.seed,
-        #     visualize_reward=False,
-        #     from_pixels=(args.encoder_type == 'pixel'),
-        #     height=args.pre_transform_image_size,
-        #     width=args.pre_transform_image_size,
-        #     frame_skip=args.action_repeat
-        # )
-        env = gym.make(args.env)
+        env = dmc2gym.make(
+            domain_name='CartPole-v0',#args.env,
+            task_name=args.task_name,
+            seed=args.seed,
+            visualize_reward=False,
+            from_pixels=(args.encoder_type == 'pixel'),
+            height=args.pre_transform_image_size,
+            width=args.pre_transform_image_size,
+            frame_skip=args.action_repeat
+        )
+        # env = gym.make(args.env)
 
         env.seed(args.seed)
 
