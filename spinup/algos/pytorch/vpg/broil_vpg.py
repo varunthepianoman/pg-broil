@@ -400,7 +400,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             o_4d = o[None,...]
             a, v, logp = ac.step(torch.as_tensor(o_4d, dtype=torch.float32))
             # \new
-
+            a = a[0]
             print('action chosen', a)
             next_o, r, d, _ = env.step(a, state_and_image=False) # should work like nothing is changed if we pass in state_and_image=False
             # next_o_state, next_o_image = next_o
