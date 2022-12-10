@@ -397,7 +397,8 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
 
             step = epoch * local_steps_per_epoch + t
             # new
-            a, v, logp = ac.step(torch.as_tensor(o, dtype=torch.float32))
+            o_4d = o[None,...]
+            a, v, logp = ac.step(torch.as_tensor(o_4d, dtype=torch.float32))
             # \new
 
 
