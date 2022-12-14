@@ -192,7 +192,7 @@ class DMCWrapper(core.Env):
         #          'next_state': observation,
         #          'action': action}
 
-        return obs, reward, done, extra
+        return obs, reward, done, None
 
     def get_reward(self):
         return self.cur_reward
