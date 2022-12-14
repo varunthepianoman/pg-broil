@@ -388,9 +388,10 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
         img = env.env.render(mode='ansi')
         img = img.transpose(2, 0, 1).copy()
         return img
+
     # Prepare for interaction with environment
     start_time = time.time()
-    o, ep_ret, ep_len = env.reset(), 0, 0
+    o, ep_ret, ep_len = env.reset(state_and_image=True), 0, 0
     print('o.shape', o.shape)
     print('o')
     for i, ob in enumerate(o):
@@ -415,7 +416,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             # \new
             # a = a[0] Probably not needed anymore
             print('action chosen', a)
-            next_o, r, d, _ = env.step(a, state_and_image=False) # should work like nothing is changed if we pass in state_and_image=False
+            next_o, r, d, _ = env.step(a, state_and_image=True) # should work like nothing is changed if we pass in state_and_image=False
             next_o_state, next_o_image = next_o
             #TODO: check this, but I think reward as function of next state makes most sense
             # if args.env == 'cartpole':
