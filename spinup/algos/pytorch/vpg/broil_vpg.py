@@ -10,8 +10,8 @@ from spinup.utils.mpi_tools import mpi_fork, mpi_avg, proc_id, mpi_statistics_sc
 from spinup.rewards.cvar_utils import cvar_enumerate_pg
 from spinup.rewards.cartpole_reward_utils import CartPoleReward
 from spinup.rewards.pointbot_reward_utils import PointBotReward
-import dmc2gym
-from dmc2gym.dmc2gym import DMCWrapper
+# import dmc2gym
+from custom_dmc2gym.dmc2gym.wrappers import DMCWrapper
 import curl.utils
 
 class VPGBuffer:
@@ -218,7 +218,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
     print('env', args.env)
     print('env.action_space', env.action_space)
     print('env.env.action_space', env.env.action_space)
-    print('env unwrapped action meanings', env.unwrapped.action_space())
+    # print('env unwrapped action meanings', env.unwrapped.action_space())
     # obs_dim = env.observation_space.shape
     act_dim = env.action_space.shape
     if args.encoder_type == 'pixel':
@@ -385,11 +385,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
                      DeltaLossV=(loss_v.item() - v_l_old), Risk=risk, ExpectedRet=np.dot(np.mean(data['p_returns'].numpy(), axis=0), reward_dist.posterior))
 
     def render():
-        img = env.render(
-            height=self._height,
-            width=self._width,
-            camera_id=self._camera_id
-        )
+        img = env.env.render(mode='ansi')
         img = img.transpose(2, 0, 1).copy()
         return img
     # Prepare for interaction with environment
@@ -502,7 +498,7 @@ if __name__ == '__main__':
     import argparse
     import time
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env', type=str, default='CartPole-v0')
+    parser.add_argument('--env', type=str, default='cartpole')#'CartPole-v0')
     parser.add_argument('--hid', type=int, default=64)
     parser.add_argument('--l', type=int, default=2)
     parser.add_argument('--gamma', type=float, default=0.99)
@@ -580,7 +576,7 @@ if __name__ == '__main__':
     logger_kwargs = setup_logger_kwargs(args.exp_name, seed=args.seed)
 
 
-    if args.env == 'CartPole-v0':
+    if args.env == 'cartpole':
         reward_dist = CartPoleReward()
     elif args.env == 'PointBot-v0':
         reward_dist = PointBotReward()
@@ -603,7 +599,7 @@ if __name__ == '__main__':
         env = DMCWrapper(
             domain_name=args.env,
             task_name=args.task_name,
-            task_kwargs=None,
+            task_kwargs={'random':1},
             visualize_reward=False,
             from_pixels=(args.encoder_type == 'pixel'),
             height=args.pre_transform_image_size,
