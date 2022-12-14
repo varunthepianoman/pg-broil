@@ -217,7 +217,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
     print('env', args.env)
     print('env.action_space', env.action_space)
     print('env.env.action_space', env.env.action_space)
-    print('env unwrapped action meanings', env.unwrapped.action_space())
+    # print('env unwrapped action meanings', env.unwrapped.action_space())
     # obs_dim = env.observation_space.shape
     act_dim = env.action_space.shape
     if args.encoder_type == 'pixel':
@@ -384,11 +384,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
                      DeltaLossV=(loss_v.item() - v_l_old), Risk=risk, ExpectedRet=np.dot(np.mean(data['p_returns'].numpy(), axis=0), reward_dist.posterior))
 
     def render():
-        img = env.render(
-            height=self._height,
-            width=self._width,
-            camera_id=self._camera_id
-        )
+        img = env.env.render(mode='ansi')
         img = img.transpose(2, 0, 1).copy()
         return img
     # Prepare for interaction with environment
