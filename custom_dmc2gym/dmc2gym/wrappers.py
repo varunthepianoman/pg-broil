@@ -166,7 +166,7 @@ class DMCWrapper(core.Env):
         assert self._true_action_space.contains(action)
         reward = 0
         old_observation = _flatten_obs(self._env._task.get_observation(self._env.physics))
-        old_constraint = self._env._task.get_constraint(self._env.physics)
+        # old_constraint = self._env._task.get_constraint(self._env.physics)
 
         for _ in range(self._frame_skip):
             time_step = self._env.step(action)
