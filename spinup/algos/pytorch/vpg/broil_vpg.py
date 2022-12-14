@@ -391,7 +391,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
     # Prepare for interaction with environment
     start_time = time.time()
     o_state, ep_ret, ep_len = env.reset(), 0, 0
-    o_image = render()
+    # o_image = render()
 
 
     # Main loop: collect experience in env and update/log each epoch
