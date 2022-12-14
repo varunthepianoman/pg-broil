@@ -95,6 +95,8 @@ class DMCWrapper(core.Env):
         # set seed
         self.seed(seed=task_kwargs.get('random', 1))
 
+        self.max_episode_steps=1000
+
     def __getattr__(self, name):
         return getattr(self._env, name)
 
