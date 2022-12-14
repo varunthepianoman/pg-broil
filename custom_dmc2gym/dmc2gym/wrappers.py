@@ -161,6 +161,7 @@ class DMCWrapper(core.Env):
 
     def step(self, action, state_and_image=False):
         action = np.clip(action, -1, 1)
+        print(self._norm_action_space)
         assert self._norm_action_space.contains(action)
         action = self._convert_action(action)
         assert self._true_action_space.contains(action)

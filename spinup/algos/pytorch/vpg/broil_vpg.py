@@ -392,7 +392,6 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
     # Prepare for interaction with environment
     start_time = time.time()
     o, ep_ret, ep_len = env.reset(state_and_image=True), 0, 0
-    print('o.shape', o.shape)
     print('o')
     for i, ob in enumerate(o):
         print(i, ob)
@@ -414,7 +413,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             o_image_4d = o_image[None,...]
             a, v, logp = ac.step(torch.as_tensor(o_image_4d, dtype=torch.float32))
             # \new
-            # a = a[0] Probably not needed anymore
+            a = a[0] #  Probably not needed anymore
             print('action chosen', a)
             next_o, r, d, _ = env.step(a, state_and_image=True) # should work like nothing is changed if we pass in state_and_image=False
             next_o_state, next_o_image = next_o
