@@ -207,10 +207,13 @@ class DMCWrapper(core.Env):
     def get_constraint(self):
         return self.cur_constraint
 
-    def reset(self):
+    def reset(self, state_and_image=False):
         time_step = self._env.reset()
         self.current_state = _flatten_obs(time_step.observation)
-        obs = self._get_obs(time_step)
+        if state_and_image:
+            obs = self._get_state_and_image_obs()
+        else:
+            obs = self._get_obs(time_step)
         self.cur_reward = None
         self.cur_constraint = None
         return obs
