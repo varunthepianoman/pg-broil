@@ -391,6 +391,10 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
     # Prepare for interaction with environment
     start_time = time.time()
     o, ep_ret, ep_len = env.reset(), 0, 0
+    print('o.shape', o.shape)
+    print('o')
+    for i, ob in enumerate(o):
+        print(i, ob)
     o_state, o_image = o
 
 
