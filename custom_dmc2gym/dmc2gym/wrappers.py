@@ -180,18 +180,18 @@ class DMCWrapper(core.Env):
         else:
             obs = self._get_obs(time_step)
         self.current_state = _flatten_obs(time_step.observation)
-        observation = _flatten_obs(self._env._task.get_observation(self._env.physics))
-        constraint = self._env._task.get_constraint(self._env.physics)
-        self.cur_reward = reward
-        self.cur_constraint = constraint
+        # observation = _flatten_obs(self._env._task.get_observation(self._env.physics))
+        # constraint = self._env._task.get_constraint(self._env.physics)
+        # self.cur_reward = reward
+        # self.cur_constraint = constraint
 
-        extra = {'internal_state': self._env.physics.get_state().copy(),
-                 'discount': time_step.discount,
-                 'constraint': constraint,
-                 'reward': reward,
-                 'state': old_observation,
-                 'next_state': observation,
-                 'action': action}
+        # extra = {'internal_state': self._env.physics.get_state().copy(),
+        #          'discount': time_step.discount,
+        #          'constraint': constraint,
+        #          'reward': reward,
+        #          'state': old_observation,
+        #          'next_state': observation,
+        #          'action': action}
 
         return obs, reward, done, extra
 
