@@ -130,7 +130,7 @@ class DMCWrapper(core.Env):
             obs = obs.transpose(2, 0, 1).copy()
         return obs
 
-    def _get_state_and_image_obs(self):
+    def _get_state_and_image_obs(self, time_step):
         return _flatten_obs(time_step.observation), self._get_image_obs()
 
     def _convert_action(self, action):
@@ -208,10 +208,12 @@ class DMCWrapper(core.Env):
         return self.cur_constraint
 
     def reset(self, state_and_image=False):
+        # print('hello_from_reset')
         time_step = self._env.reset()
         self.current_state = _flatten_obs(time_step.observation)
-        if state_and_image:
-            obs = self._get_state_and_image_obs()
+        if True:#state_and_image:
+            obs = self._get_state_and_image_obs(time_step)
+            # print('obs from reset', obs)
         else:
             obs = self._get_obs(time_step)
         self.cur_reward = None
