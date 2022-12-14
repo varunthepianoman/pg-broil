@@ -11,6 +11,7 @@ from spinup.rewards.cvar_utils import cvar_enumerate_pg
 from spinup.rewards.cartpole_reward_utils import CartPoleReward
 from spinup.rewards.pointbot_reward_utils import PointBotReward
 import dmc2gym
+from dmc2gym.dmc2gym import DMCWrapper
 import curl.utils
 
 class VPGBuffer:
@@ -598,7 +599,20 @@ if __name__ == '__main__':
         #     width=args.pre_transform_image_size,
         #     frame_skip=args.action_repeat
         # )
-        env = gym.make(args.env)
+        # env = gym.make(args.env)
+        env = DMCWrapper(
+            domain_name=args.env,
+            task_name=args.task_name,
+            task_kwargs=None,
+            visualize_reward=False,
+            from_pixels=(args.encoder_type == 'pixel'),
+            height=args.pre_transform_image_size,
+            width=args.pre_transform_image_size,
+            camera_id=0,
+            frame_skip=args.action_repeat,
+            environment_kwargs=None,
+            channels_first=True
+        )
 
         env.seed(args.seed)
 
