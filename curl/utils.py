@@ -213,25 +213,33 @@ class FrameStack(gym.Wrapper):
             dtype=env.observation_space.dtype
         )
         self._max_episode_steps = env._max_episode_steps
+        self._most_recent_state = None
 
     def reset(self, state_and_image=False):
         obs = self.env.reset(state_and_image)
+        if state_and_image:
+            state, image = obs
+            self._most_recent_state = state
         for _ in range(self._k):
-            self._frames.append(obs)
-        return self._get_obs()
+            self._frames.append(image)
+        return self._get_obs(state_and_image)
 
     def step(self, action, state_and_image=False):
         obs, reward, done, info = self.env.step(action, state_and_image)
         if state_and_image:
             state, image = obs
+            self._most_recent_state = state
             self._frames.append(image)
-            return [state, self._get_obs()], reward, done, info
+            return self._get_obs(state_and_image), reward, done, info
         return self._get_obs(), reward, done, info
 
-    def _get_obs(self):
+    def _get_obs(self, state_and_image=False):
         assert len(self._frames) == self._k
-        return np.concatenate(list(self._frames), axis=0)
-
+        images = np.concatenate(list(self._frames), axis=0)
+        if state_and_image:
+            return [self._most_recent_state, images]
+        else:
+            return images
 
 def random_crop(imgs, output_size):
     """
