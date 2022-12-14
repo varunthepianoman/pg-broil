@@ -390,8 +390,8 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
         return img
     # Prepare for interaction with environment
     start_time = time.time()
-    o_state, ep_ret, ep_len = env.reset(), 0, 0
-    # o_image = render()
+    o, ep_ret, ep_len = env.reset(), 0, 0
+    o_state, o_image = o
 
 
     # Main loop: collect experience in env and update/log each epoch
@@ -411,9 +411,8 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             # \new
             # a = a[0] Probably not needed anymore
             print('action chosen', a)
-            next_o_state, r, d, _ = env.step(a, state_and_image=False) # should work like nothing is changed if we pass in state_and_image=False
-            next_o_image = render()
-            # next_o_state, next_o_image = next_o
+            next_o, r, d, _ = env.step(a, state_and_image=False) # should work like nothing is changed if we pass in state_and_image=False
+            next_o_state, next_o_image = next_o
             #TODO: check this, but I think reward as function of next state makes most sense
             # if args.env == 'cartpole':
             if args.env == 'CartPole-v0':
