@@ -41,6 +41,7 @@ class VPGBuffer:
         """
         Append one timestep of agent-environment interaction to the buffer.
         """
+        print('store obs.shape', obs.shape)
         assert self.ptr < self.max_size     # buffer has to have room so you can store
         self.obs_buf[self.ptr] = obs
         self.act_buf[self.ptr] = act
@@ -407,7 +408,8 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
         print('epoch ', epoch)
         first_rollout = True
         for t in range(local_steps_per_epoch):
-
+            print(t)
+            print('o_image_uncropped.shape top main', o_image_uncropped.shape)
             # new
             # note: Can copy curl.train.py: L228-251.
 
@@ -441,6 +443,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             ep_ret += r
             ep_len += 1
 
+            print('o_image_uncropped.shape before buf store', o_image_uncropped.shape)
             # save and log
             buf.store(o_image_uncropped, a, rew_dist, v, logp)
             logger.store(VVals=v)
@@ -485,10 +488,10 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
         if (epoch % save_freq == 0) or (epoch == epochs-1):
             logger.save_state({'env': env}, None)
 
-        
+        print('o_image_uncropped.shape before update', o_image_uncropped.shape)
         # Perform VPG update!
         update(step)
-        print('after update')
+        print('o_image_uncropped.shape after update', o_image_uncropped.shape)
 
         # Log info about epoch
         logger.log_tabular('Epoch', epoch)
