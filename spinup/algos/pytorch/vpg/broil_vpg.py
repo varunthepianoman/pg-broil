@@ -43,6 +43,7 @@ class VPGBuffer:
         """
         print('store obs.shape', obs.shape)
         assert self.ptr < self.max_size     # buffer has to have room so you can store
+        print(self.obs_buf.shape)
         self.obs_buf[self.ptr] = obs
         self.act_buf[self.ptr] = act
         self.rew_buf[self.ptr] = rew
