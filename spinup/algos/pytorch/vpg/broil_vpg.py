@@ -22,7 +22,7 @@ class VPGBuffer:
     """
 
     #rew_dim is the dimensionality of the reward function posterior
-    def __init__(self, obs_dim, act_dim, num_rew_fns, size, gamma=0.99, lam=0.95, image_size=84):
+    def __init__(self, obs_dim, act_dim, num_rew_fns, size, gamma=0.99, lam=0.95, image_size=100):
         self.num_rew_fns = num_rew_fns
         self.obs_buf = np.zeros(core.combined_shape(size, obs_dim), dtype=np.float32)
         self.act_buf = np.zeros(core.combined_shape(size, act_dim), dtype=np.float32)
@@ -34,6 +34,7 @@ class VPGBuffer:
         self.logp_buf = np.zeros(size, dtype=np.float32)
         self.gamma, self.lam = gamma, lam
         self.ptr, self.path_start_idx, self.max_size = 0, 0, size
+        self.image_size = image_size
 
     def store(self, obs, act, rew, val, logp):
         """
@@ -100,7 +101,7 @@ class VPGBuffer:
             self.adv_buf[:,i] = (self.adv_buf[:,i] - adv_mean) / adv_std
         data = dict(obs=self.obs_buf, act=self.act_buf, ret=self.ret_buf,
                         adv=self.adv_buf, logp=self.logp_buf, p_returns=self.posterior_returns)
-        cpc_kwargs = dict(obs_anchor=obses, obs_pos=pos, time_anchor=None, time_pos=None)
+        cpc_kwargs = dict(obs_anchor=self.obs_buf, obs_pos=pos, time_anchor=None, time_pos=None)
         self.posterior_returns = [] # resetting
         return {k: torch.as_tensor(v, dtype=torch.float32) for k,v in data.items()}, cpc_kwargs
 
@@ -215,9 +216,9 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
 
     # Instantiate environment
     env = env_fn()
-    print('env', args.env)
-    print('env.action_space', env.action_space)
-    print('env.env.action_space', env.env.action_space)
+    #print('env', args.env)
+    #print('env.action_space', env.action_space)
+    #print('env.env.action_space', env.env.action_space)
     # print('env unwrapped action meanings', env.unwrapped.action_space())
     # obs_dim = env.observation_space.shape
     act_dim = env.action_space.shape
@@ -392,9 +393,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
     # Prepare for interaction with environment
     start_time = time.time()
     o, ep_ret, ep_len = env.reset(state_and_image=True), 0, 0
-    print('o')
-    for i, ob in enumerate(o):
-        print(i, ob)
+    # print('o')
     o_state, o_image = o
 
 
@@ -414,7 +413,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             a, v, logp = ac.step(torch.as_tensor(o_image_4d, dtype=torch.float32))
             # \new
             a = a[0] #  Probably not needed anymore
-            print('action chosen', a)
+            # print('action chosen', a)
             next_o, r, d, _ = env.step(a, state_and_image=True) # should work like nothing is changed if we pass in state_and_image=False
             next_o_state, next_o_image = next_o
             #TODO: check this, but I think reward as function of next state makes most sense
@@ -424,7 +423,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
                 # print('next_o', next_o)
                 rew_dist = reward_dist.get_reward_distribution(next_o_state)
                 # OLD: rew_dist = reward_dist.get_reward_distribution(next_o_state)
-                print('rew_dist', rew_dist)
+                # print('rew_dist', rew_dist)
             elif args.env == 'PointBot-v0':
                 rew_dist = reward_dist.get_reward_distribution(env, next_o_state)
                 # OLD rew_dist = reward_dist.get_reward_distribution(env, next_o_state)
@@ -446,10 +445,9 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             terminal = d or timeout
             epoch_ended = t==local_steps_per_epoch-1
 
-            if render and first_rollout:
-                env.render()
+            if first_rollout:
                 time.sleep(0.01)
-                print("cart position", o_state[0])
+                # print("cart position", o_state[0])
                 
                 
 
@@ -459,7 +457,8 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
                     print('Warning: trajectory cut off by epoch at %d steps.'%ep_len, flush=True)
                 # if trajectory didn't reach terminal state, bootstrap value target
                 if timeout or epoch_ended:
-                    _, v, _ = ac.step(torch.as_tensor(o_image, dtype=torch.float32))
+                    o_image_4d = o_image[None,...]
+                    _, v, _ = ac.step(torch.as_tensor(o_image_4d, dtype=torch.float32))
                     buf.finish_path(v)
                 else:
                     buf.finish_path()
@@ -467,8 +466,8 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
                 if terminal:
                     # only save EpRet / EpLen if trajectory finished
                     logger.store(EpRet=ep_ret, EpLen=ep_len)
-                o_state, ep_ret, ep_len = env.reset(), 0, 0
-                o_image = render()
+                o, ep_ret, ep_len = env.reset(state_and_image=True), 0, 0
+                o_state, o_image = o 
 
 
         # Save model
@@ -523,7 +522,7 @@ if __name__ == '__main__':
     parser.add_argument('--task_name', default='balance')
     parser.add_argument('--pre_transform_image_size', default=100, type=int)
 
-    parser.add_argument('--image_size', default=84, type=int)
+    parser.add_argument('--image_size', default=100, type=int)
     parser.add_argument('--action_repeat', default=1, type=int)
     parser.add_argument('--frame_stack', default=3, type=int)
     # replay buffer
