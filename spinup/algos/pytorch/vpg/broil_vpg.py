@@ -365,14 +365,15 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
 
         # Value function learning
         for i in range(train_v_iters):
-            # print('val func learning', i)
+            print('val func learning', i)
             vf_optimizer.zero_grad()
             loss_v = compute_loss_v(data)
             loss_v.backward()
             mpi_avg_grads(ac.v)    # average grads across MPI processes
             vf_optimizer.step()
-        
+
         if step % args.critic_target_update_freq == 0:
+            print('soft update')
             curl.utils.soft_update_params(
                 ac.v.encoder, ac.v.encoder_momentum,
                 args.encoder_tau
@@ -518,7 +519,7 @@ if __name__ == '__main__':
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--seed', '-s', type=int, default=0)
     parser.add_argument('--cpu', type=int, default=1)
-    parser.add_argument('--steps', type=int, default=4000) # we already have training_steps in curl
+    parser.add_argument('--steps', type=int, default=2000)#4000) # we already have training_steps in curl
     parser.add_argument('--epochs', type=int, default=50)
     parser.add_argument('--exp_name', type=str, default='vpg')
     parser.add_argument('--render', type=bool, default=False)
