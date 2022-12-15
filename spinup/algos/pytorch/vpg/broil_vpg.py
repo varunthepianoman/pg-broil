@@ -93,8 +93,9 @@ class VPGBuffer:
         self.ptr, self.path_start_idx = 0, 0
         start = time.time()
         pos = self.obs_buf.copy()
+        obs_buf_orig = self.obs_buf.copy()
 
-        self.obs_buf = curl.utils.random_crop(self.obs_buf, self.image_size)
+        obs_buf_crop = curl.utils.random_crop(obs_buf, self.image_size)
         pos = curl.utils.random_crop(pos, self.image_size)
     
 
@@ -103,9 +104,9 @@ class VPGBuffer:
         for i in range(self.num_rew_fns):
             adv_mean, adv_std = mpi_statistics_scalar(self.adv_buf[:,i])
             self.adv_buf[:,i] = (self.adv_buf[:,i] - adv_mean) / adv_std
-        data = dict(obs=self.obs_buf, act=self.act_buf, ret=self.ret_buf,
+        data = dict(obs=obs_buf_crop, act=self.act_buf, ret=self.ret_buf,
                         adv=self.adv_buf, logp=self.logp_buf, p_returns=self.posterior_returns)
-        cpc_kwargs = dict(obs_anchor=self.obs_buf, obs_pos=pos, time_anchor=None, time_pos=None)
+        cpc_kwargs = dict(obs_anchor=obs_buf_crop, obs_pos=pos, time_anchor=None, time_pos=None)
         self.posterior_returns = [] # resetting
         return {k: torch.as_tensor(v, dtype=torch.float32) for k,v in data.items()}, cpc_kwargs
 
