@@ -348,7 +348,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
         data, cpc_kwargs = buf.sample_cpc()
 
         # Get loss and info values before update
-        pi_l_old, pi_info_old, risk = compute_loss_pi(data)
+        pi_l_old, pi_info_old, risk =  compute_loss_pi(data)
         pi_l_old = pi_l_old.item()
         v_l_old = compute_loss_v(data).item()
 
@@ -393,7 +393,9 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
     # Prepare for interaction with environment
     start_time = time.time()
     o, ep_ret, ep_len = env.reset(state_and_image=True), 0, 0
-    # print('o')
+    if args.encoder_type == 'pixel':
+        o = curl.utils.center_crop_image(o, args.image_size)
+    print('o', o)
     o_state, o_image = o
 
 
