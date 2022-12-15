@@ -216,8 +216,8 @@ class BROILActorCritic(nn.Module):
         return self.step(obs)[0]
 
     def update_cpc(self, obs_anchor, obs_pos, cpc_kwargs, L, step):
-        z_a = self.CURL.encode(obs_anchor)
-        z_pos = self.CURL.encode(obs_pos, ema=True)
+        z_a = self.CURL.encode(torch.as_tensor(obs_anchor, dtype=torch.float32))
+        z_pos = self.CURL.encode(torch.as_tensor(obs_pos, dtype=torch.float32), ema=True)
 
         logits = self.CURL.compute_logits(z_a, z_pos)
         labels = torch.arange(logits.shape[0]).long().to(self.device)
