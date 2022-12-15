@@ -242,7 +242,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
 
     # Set up experience buffer
     local_steps_per_epoch = int(steps_per_epoch / num_procs())
-    buf = VPGBuffer(obs_dim, act_dim, num_rew_fns, local_steps_per_epoch, gamma, lam, image_size=args.image_size)
+    buf = VPGBuffer(pre_aug_obs_dim, act_dim, num_rew_fns, local_steps_per_epoch, gamma, lam, image_size=args.image_size)
 
     #### compute BROIL policy gradient loss (robust version)
     def compute_broil_weights(batch_rets, weights):
@@ -394,9 +394,9 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
     # Prepare for interaction with environment
     start_time = time.time()
     o, ep_ret, ep_len = env.reset(state_and_image=True), 0, 0
-    o_state, o_image = o
+    o_state, o_image_uncropped = o
     if args.encoder_type == 'pixel':
-        o_image = curl.utils.center_crop_image(o_image, args.image_size)
+        o_image = curl.utils.center_crop_image(o_image_uncropped, args.image_size)
     print('o_image.shape', o_image.shape)
 
     # Main loop: collect experience in env and update/log each epoch
@@ -417,9 +417,9 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             a = a[0] #  Probably not needed anymore
             # print('action chosen', a)
             next_o, r, d, _ = env.step(a, state_and_image=True) # should work like nothing is changed if we pass in state_and_image=False
-            next_o_state, next_o_image = next_o
+            next_o_state, next_o_image_uncropped = next_o
             if args.encoder_type == 'pixel':
-                next_o_image = curl.utils.center_crop_image(next_o_image, args.image_size)
+                next_o_image = curl.utils.center_crop_image(next_o_image_uncropped, args.image_size)
 
             #TODO: check this, but I think reward as function of next state makes most sense
             # if args.env == 'CartPole-v0':
@@ -438,11 +438,12 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             ep_len += 1
 
             # save and log
-            buf.store(o_image, a, rew_dist, v, logp)
+            buf.store(o_image_uncropped, a, rew_dist, v, logp)
             logger.store(VVals=v)
             
             # Update obs (critical!)
             o_image = next_o_image
+            o_image_uncropped = next_o_image_uncropped
             o_state = next_o_state
             # OLD o = next_o_image
 
@@ -472,9 +473,9 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
                     # only save EpRet / EpLen if trajectory finished
                     logger.store(EpRet=ep_ret, EpLen=ep_len)
                 o, ep_ret, ep_len = env.reset(state_and_image=True), 0, 0
-                o_state, o_image = o
+                o_state, o_image_uncropped = o
                 if args.encoder_type == 'pixel':
-                    o_image = curl.utils.center_crop_image(o_image, args.image_size)
+                    o_image = curl.utils.center_crop_image(o_image_uncropped, args.image_size)
 
         # Save model
         if (epoch % save_freq == 0) or (epoch == epochs-1):
