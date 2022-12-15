@@ -22,7 +22,7 @@ class VPGBuffer:
     """
 
     #rew_dim is the dimensionality of the reward function posterior
-    def __init__(self, obs_dim, act_dim, num_rew_fns, size, gamma=0.99, lam=0.95, image_size=100):
+    def __init__(self, obs_dim, act_dim, num_rew_fns, size, gamma=0.99, lam=0.95, image_size=84):
         self.num_rew_fns = num_rew_fns
         self.obs_buf = np.zeros(core.combined_shape(size, obs_dim), dtype=np.float32)
         self.act_buf = np.zeros(core.combined_shape(size, act_dim), dtype=np.float32)
@@ -524,7 +524,7 @@ if __name__ == '__main__':
     parser.add_argument('--task_name', default='balance')
     parser.add_argument('--pre_transform_image_size', default=100, type=int)
 
-    parser.add_argument('--image_size', default=100, type=int)
+    parser.add_argument('--image_size', default=84, type=int)
     parser.add_argument('--action_repeat', default=1, type=int)
     parser.add_argument('--frame_stack', default=3, type=int)
     # replay buffer
