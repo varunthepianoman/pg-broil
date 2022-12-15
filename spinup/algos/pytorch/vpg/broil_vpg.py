@@ -375,7 +375,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
                 args.encoder_tau
             )
 
-        if step % args.cpc_update_freq == 0 and ac.encoder_type == 'pixel':
+        if (True or step % args.cpc_update_freq == 0) and ac.encoder_type == 'pixel':
             obs_anchor, obs_pos = cpc_kwargs["obs_anchor"], cpc_kwargs["obs_pos"]
             print('update cpc')
             ac.update_cpc(obs_anchor, obs_pos,cpc_kwargs, None, step) # passed in L=None
