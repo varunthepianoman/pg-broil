@@ -86,6 +86,7 @@ class VPGBuffer:
         self.path_start_idx = self.ptr
 
     def sample_cpc(self):
+        print(self.ptr, self.max_size)
         assert self.ptr == self.max_size    # buffer has to be full before you can get self.ptr, 
         self.ptr, self.path_start_idx = 0, 0
         start = time.time()
