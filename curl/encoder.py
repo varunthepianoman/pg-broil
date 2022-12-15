@@ -32,7 +32,7 @@ class PixelEncoder(nn.Module):
         print(self.convs)
         # OLD out_dim = OUT_DIM_64[num_layers] if obs_shape[-1] == 64 else OUT_DIM[num_layers]
         out_dim = 55#35
-        fc_size = 59168#39200
+        fc_size = 39200#59168
         # OLDself.fc = nn.Linear(num_filters * out_dim * out_dim, self.feature_dim)
         self.fc = nn.Linear(fc_size, self.feature_dim)
         self.ln = nn.LayerNorm(self.feature_dim)
