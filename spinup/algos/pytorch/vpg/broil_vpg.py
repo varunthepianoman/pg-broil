@@ -418,8 +418,8 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             next_o, r, d, _ = env.step(a, state_and_image=True) # should work like nothing is changed if we pass in state_and_image=False
             next_o_state, next_o_image = next_o
             #TODO: check this, but I think reward as function of next state makes most sense
-            # if args.env == 'cartpole':
-            if args.env == 'CartPole-v0':
+            # if args.env == 'CartPole-v0':
+            if args.env == 'cartpole':
                 # print('next_o.shape', next_o.shape)
                 # print('next_o', next_o)
                 rew_dist = reward_dist.get_reward_distribution(next_o_state)
