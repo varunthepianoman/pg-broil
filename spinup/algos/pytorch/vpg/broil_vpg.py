@@ -362,6 +362,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
 
         # Value function learning
         for i in range(train_v_iters):
+            print('val func learning', i)
             vf_optimizer.zero_grad()
             loss_v = compute_loss_v(data)
             loss_v.backward()
@@ -376,6 +377,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
 
         if step % args.cpc_update_freq == 0 and ac.encoder_type == 'pixel':
             obs_anchor, obs_pos = cpc_kwargs["obs_anchor"], cpc_kwargs["obs_pos"]
+            print('update cpc')
             ac.update_cpc(obs_anchor, obs_pos,cpc_kwargs, None, step) # passed in L=None
 
 
@@ -401,6 +403,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
 
     # Main loop: collect experience in env and update/log each epoch
     for epoch in range(epochs):
+        print('epoch ', epoch)
         first_rollout = True
         for t in range(local_steps_per_epoch):
 
@@ -484,6 +487,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
         
         # Perform VPG update!
         update(step)
+        print('after update')
 
         # Log info about epoch
         logger.log_tabular('Epoch', epoch)

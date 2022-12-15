@@ -216,7 +216,6 @@ class BROILActorCritic(nn.Module):
         return self.step(obs)[0]
 
     def update_cpc(self, obs_anchor, obs_pos, cpc_kwargs, L, step):
-
         z_a = self.CURL.encode(obs_anchor)
         z_pos = self.CURL.encode(obs_pos, ema=True)
 
