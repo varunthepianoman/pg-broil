@@ -23,7 +23,7 @@ class VPGBuffer:
 
     #rew_dim is the dimensionality of the reward function posterior
     def __init__(self, obs_dim, act_dim, num_rew_fns, size, gamma=0.99, lam=0.95, image_size=84):
-        print('vpgbuf obs_dim', obs_dim)
+        # print('vpgbuf obs_dim', obs_dim)
         self.num_rew_fns = num_rew_fns
         self.obs_buf = np.zeros(core.combined_shape(size, obs_dim), dtype=np.float32)
         self.act_buf = np.zeros(core.combined_shape(size, act_dim), dtype=np.float32)
@@ -41,7 +41,7 @@ class VPGBuffer:
         """
         Append one timestep of agent-environment interaction to the buffer.
         """
-        print('store obs.shape', obs.shape)
+        # print('store obs.shape', obs.shape)
         assert self.ptr < self.max_size     # buffer has to have room so you can store
         print(self.obs_buf.shape)
         self.obs_buf[self.ptr] = obs
@@ -95,7 +95,7 @@ class VPGBuffer:
         pos = self.obs_buf.copy()
         obs_buf_orig = self.obs_buf.copy()
 
-        obs_buf_crop = curl.utils.random_crop(obs_buf, self.image_size)
+        obs_buf_crop = curl.utils.random_crop(obs_buf_orig, self.image_size)
         pos = curl.utils.random_crop(pos, self.image_size)
     
 
@@ -411,7 +411,6 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
         first_rollout = True
         for t in range(local_steps_per_epoch):
             print(t)
-            print('o_image_uncropped.shape top main', o_image_uncropped.shape)
             # new
             # note: Can copy curl.train.py: L228-251.
 
@@ -445,7 +444,6 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             ep_ret += r
             ep_len += 1
 
-            print('o_image_uncropped.shape before buf store', o_image_uncropped.shape)
             # save and log
             buf.store(o_image_uncropped, a, rew_dist, v, logp)
             logger.store(VVals=v)
@@ -490,10 +488,8 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
         if (epoch % save_freq == 0) or (epoch == epochs-1):
             logger.save_state({'env': env}, None)
 
-        print('o_image_uncropped.shape before update', o_image_uncropped.shape)
         # Perform VPG update!
         update(step)
-        print('o_image_uncropped.shape after update', o_image_uncropped.shape)
 
         # Log info about epoch
         logger.log_tabular('Epoch', epoch)
