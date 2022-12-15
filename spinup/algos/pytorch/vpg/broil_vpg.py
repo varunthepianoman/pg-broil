@@ -23,6 +23,7 @@ class VPGBuffer:
 
     #rew_dim is the dimensionality of the reward function posterior
     def __init__(self, obs_dim, act_dim, num_rew_fns, size, gamma=0.99, lam=0.95, image_size=84):
+        print('vpgbuf obs_dim', obs_dim)
         self.num_rew_fns = num_rew_fns
         self.obs_buf = np.zeros(core.combined_shape(size, obs_dim), dtype=np.float32)
         self.act_buf = np.zeros(core.combined_shape(size, act_dim), dtype=np.float32)
