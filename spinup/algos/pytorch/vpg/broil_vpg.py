@@ -417,6 +417,9 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
             # print('action chosen', a)
             next_o, r, d, _ = env.step(a, state_and_image=True) # should work like nothing is changed if we pass in state_and_image=False
             next_o_state, next_o_image = next_o
+            if args.encoder_type == 'pixel':
+                next_o_image = curl.utils.center_crop_image(next_o_image, args.image_size)
+
             #TODO: check this, but I think reward as function of next state makes most sense
             # if args.env == 'CartPole-v0':
             if args.env == 'cartpole':
@@ -468,8 +471,9 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
                     # only save EpRet / EpLen if trajectory finished
                     logger.store(EpRet=ep_ret, EpLen=ep_len)
                 o, ep_ret, ep_len = env.reset(state_and_image=True), 0, 0
-                o_state, o_image = o 
-
+                o_state, o_image = o
+                if args.encoder_type == 'pixel':
+                    o_image = curl.utils.center_crop_image(o_image, args.image_size)
 
         # Save model
         if (epoch % save_freq == 0) or (epoch == epochs-1):
