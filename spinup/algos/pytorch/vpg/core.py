@@ -113,7 +113,7 @@ class MLPGaussianActor(Actor):
         self.mu_net = mlp([encoder_feature_dim] + list(hidden_sizes) + [act_dim], activation)
 
     def _distribution(self, obs):
-        print('obs.shape', obs.shape)
+        # print('obs.shape', obs.shape)
         obs = self.encoder(obs)
         mu = self.mu_net(obs)
         std = torch.exp(self.log_std)
