@@ -405,7 +405,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
     for epoch in range(epochs):
         print('epoch ', epoch)
         first_rollout = True
-        for t in range(local_steps_per_epoch):
+        for t in range(100):#local_steps_per_epoch):
 
             # new
             # note: Can copy curl.train.py: L228-251.
