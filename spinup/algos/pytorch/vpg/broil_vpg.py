@@ -242,7 +242,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
 
     # Set up experience buffer
     local_steps_per_epoch = int(steps_per_epoch / num_procs())
-    buf = VPGBuffer(pre_aug_obs_dim, act_dim, num_rew_fns, local_steps_per_epoch, gamma, lam, image_size=args.image_size)
+    buf = VPGBuffer(obs_dim, act_dim, num_rew_fns, local_steps_per_epoch, gamma, lam, image_size=args.image_size)
 
     #### compute BROIL policy gradient loss (robust version)
     def compute_broil_weights(batch_rets, weights):
