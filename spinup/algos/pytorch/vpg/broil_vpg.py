@@ -131,7 +131,7 @@ class VPGBuffer:
 
 def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILActorCritic, ac_kwargs=dict(), render=False, seed=0, 
         steps_per_epoch=4000, epochs=50, broil_lambda=0.5, broil_alpha=0.95, gamma=0.99, pi_lr=3e-4,
-        vf_lr=1e-3, train_v_iters=80, lam=0.97, max_ep_len=1000,
+        vf_lr=1e-3, train_v_iters=4, lam=0.97, max_ep_len=1000,
         logger_kwargs=dict(), save_freq=10):
     """
     Vanilla Policy Gradient 
@@ -362,7 +362,7 @@ def vpg(env_fn, reward_dist, broil_risk_metric='cvar', actor_critic=core.BROILAc
 
         # Value function learning
         for i in range(train_v_iters):
-            print('val func learning', i)
+            # print('val func learning', i)
             vf_optimizer.zero_grad()
             loss_v = compute_loss_v(data)
             loss_v.backward()
