@@ -43,7 +43,7 @@ class VPGBuffer:
         """
         # print('store obs.shape', obs.shape)
         assert self.ptr < self.max_size     # buffer has to have room so you can store
-        print(self.obs_buf.shape)
+        # print(self.obs_buf.shape)
         self.obs_buf[self.ptr] = obs
         self.act_buf[self.ptr] = act
         self.rew_buf[self.ptr] = rew
@@ -93,9 +93,8 @@ class VPGBuffer:
         self.ptr, self.path_start_idx = 0, 0
         start = time.time()
         pos = self.obs_buf.copy()
-        obs_buf_orig = self.obs_buf.copy()
 
-        obs_buf_crop = curl.utils.random_crop(obs_buf_orig, self.image_size)
+        obs_buf_crop = curl.utils.random_crop(self.obs_buf, self.image_size)
         pos = curl.utils.random_crop(pos, self.image_size)
     
 
